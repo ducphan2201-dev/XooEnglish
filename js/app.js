@@ -1,8 +1,4 @@
 document.addEventListener("DOMContentLoaded", () => {
-    const savedUrl = localStorage.getItem("XOO_API_URL");
-    const apiUrlInput = document.getElementById("apiUrl");
-    if(savedUrl) apiUrlInput.value = savedUrl;
-    
     loadData();
 });
 
@@ -17,7 +13,7 @@ const demoData = [
 ];
 
 async function loadData() {
-    const url = document.getElementById("apiUrl").value.trim();
+    const url = (typeof CONFIG !== 'undefined' && CONFIG.API_URL ? CONFIG.API_URL : "").trim();
     const loader = document.getElementById("loader");
     const container = document.getElementById("classContainer");
     
@@ -32,8 +28,6 @@ async function loadData() {
         }, 600);
         return;
     }
-
-    localStorage.setItem("XOO_API_URL", url);
 
     try {
         const response = await fetch(url + "?t=" + new Date().getTime()); 
@@ -131,7 +125,7 @@ async function startSession(className, isDemo) {
         return;
     }
 
-    const url = document.getElementById("apiUrl").value.trim();
+    const url = (typeof CONFIG !== 'undefined' && CONFIG.API_URL ? CONFIG.API_URL : "").trim();
     if(!url) return;
 
     const checkboxes = document.querySelectorAll(`input.absent-cb[data-class="${className}"]:checked`);
@@ -185,7 +179,7 @@ function closeModal() {
 
 async function submitForm(e) {
     e.preventDefault();
-    const url = document.getElementById("apiUrl").value.trim();
+    const url = (typeof CONFIG !== 'undefined' && CONFIG.API_URL ? CONFIG.API_URL : "").trim();
     
     const className = document.getElementById("inpClass").value.trim();
     const name = document.getElementById("inpName").value.trim();

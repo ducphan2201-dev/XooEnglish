@@ -13,17 +13,6 @@
       <p class="subtitle">Quản lý Học phí & Điểm danh 1-Chạm</p>
     </header>
 
-    <div class="setup-card">
-      <h3 style="margin-top:0; color:#1e293b;">🌐 Liên kết Cơ Sở Dữ Liệu (Google Sheets)</h3>
-      <p style="color:#64748b; font-size:0.95rem; margin-bottom:15px;">
-        Nhập đường dẫn Web App của báo cáo Excel để lấy dữ liệu. Nếu để trống, hệ thống sẽ tự sinh <b>Dữ liệu DEMO</b> cho bạn trải nghiệm trước!
-      </p>
-      <div class="input-group">
-        <input type="text" id="apiUrl" placeholder="https://script.google.com/macros/s/.../exec (Nhập API Link thật của bạn)">
-        <button class="btn-primary" onclick="loadData()">Tải Dữ Liệu</button>
-      </div>
-    </div>
-    
     <!-- Nút thêm học sinh mới (Input Khai báo) -->
     <button class="btn-primary btn-add" onclick="openModal()">+ Khai Báo Học Viên Mới</button>
 
@@ -66,6 +55,7 @@
     </div>
   </div>
 
+  <script src="js/config.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

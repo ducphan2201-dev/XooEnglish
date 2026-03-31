@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>XooEnglish - Hệ thống Điểm danh</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="app-container">
+    <header class="header">
+      <h1>XooEnglish Dashboard</h1>
+      <p class="subtitle">Quản lý Học phí & Điểm danh 1-Chạm</p>
+    </header>
+
+    <div class="setup-card">
+      <h3 style="margin-top:0; color:#1e293b;">🌐 Liên kết Cơ Sở Dữ Liệu (Google Sheets)</h3>
+      <p style="color:#64748b; font-size:0.95rem; margin-bottom:15px;">
+        Nhập đường dẫn Web App của báo cáo Excel để lấy dữ liệu. Nếu để trống, hệ thống sẽ tự sinh <b>Dữ liệu DEMO</b> cho bạn trải nghiệm trước!
+      </p>
+      <div class="input-group">
+        <input type="text" id="apiUrl" placeholder="https://script.google.com/macros/s/.../exec (Nhập API Link thật của bạn)">
+        <button class="btn-primary" onclick="loadData()">Tải Dữ Liệu</button>
+      </div>
+    </div>
+    
+    <!-- Nút thêm học sinh mới (Input Khai báo) -->
+    <button class="btn-primary btn-add" onclick="openModal()">+ Khai Báo Học Viên Mới</button>
+
+    <div class="loader" id="loader" style="display:none;"></div>
+    
+    <div class="class-grid" id="classContainer">
+      <!-- Sinh dữ liệu tự động tại đây -->
+    </div>
+  </div>
+
+  <!-- Modal Cửa Sổ Khai Báo Input -->
+  <div id="addModal" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>🚀 Khai Báo Học Viên Mới</h3>
+        <span class="close-btn" onclick="closeModal()">&times;</span>
+      </div>
+      <form id="addForm" onsubmit="submitForm(event)">
+        <div class="form-group">
+          <label>Nhập Tên Lớp Học:</label>
+          <input type="text" id="inpClass" placeholder="Ví dụ: Lớp IELTS Thứ 3-5-7" required>
+        </div>
+        <div class="form-group">
+          <label>Họ Tên Học Viên:</label>
+          <input type="text" id="inpName" placeholder="Ví dụ: Nguyễn Văn A" required>
+        </div>
+        <div class="form-group">
+          <label>Ngày Bắt Đầu Học:</label>
+          <input type="date" id="inpDate" required>
+        </div>
+        <div class="form-group">
+          <label>Mua Gói Thẻ Học Phí:</label>
+          <select id="inpCard" required>
+            <option value="10">Thẻ 10 Buổi Cơ Bản</option>
+            <option value="20">Thẻ 20 Buổi Nâng Cao</option>
+          </select>
+        </div>
+        <button type="submit" class="btn-primary" style="width:100%; margin-top:20px; padding:15px;" id="btnSubmitForm">Hoàn Tất Khai Báo</button>
+      </form>
+    </div>
+  </div>
+
+  <script src="js/app.js"></script>
+</body>
+</html>

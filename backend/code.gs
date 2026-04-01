@@ -6,7 +6,9 @@ function doGet(e) {
     return ContentService.createTextOutput(JSON.stringify({ status: 'success', data: [] })).setMimeType(ContentService.MimeType.JSON);
   }
   
-  var headers = data[0];
+  var rawHeaders = data[0] || [];
+  
+  var headers = rawHeaders.map(function(h) { return String(h).trim(); });
   var rows = data.slice(1);
   var result = rows.map(function(row) {
     var obj = {};
@@ -32,7 +34,8 @@ function doPost(e) {
     var className = payload.className;
     var absences = payload.absences || []; 
     var data = sheet.getDataRange().getValues();
-    var headers = data[0];
+    var rawHeaders = data[0] || [];
+    var headers = rawHeaders.map(function(h) { return String(h).trim(); });
     
     var colClass = headers.indexOf("Ten_Lop");
     var colName = headers.indexOf("Ten_Hoc_Vien");
@@ -55,9 +58,13 @@ function doPost(e) {
           sheet.getRange(i + 1, colAbsences + 1).setValue(currentAbsence + 1);
         } else {
           // Neu CO MAT -> Tru vao the con lai
-          var remaining = parseInt(data[i][colRemaining] !== "" ? data[i][colRemaining] : data[i][colCardType]);
-          var newRemaining = remaining - 1;
-          sheet.getRange(i + 1, colRemaining + 1).setValue(newRemaining);
+          var oldRemainingVal = data[i][colRemaining] !== "" ? data[i][colRemaining] : data[i][colCardType];
+          
+          if (!isNaN(oldRemainingVal) && oldRemainingVal.toString().trim() !== "") {
+            var remaining = parseInt(oldRemainingVal);
+            var newRemaining = remaining - 1;
+            sheet.getRange(i + 1, colRemaining + 1).setValue(newRemaining);
+          }
           updatedRows++;
         }
       }
@@ -72,12 +79,16 @@ function doPost(e) {
 
   // ----- TÍNH NĂNG 2: THÊM HỌC VIÊN MỚI -----
   if (action === "add_student") {
-    var headers = sheet.getDataRange().getValues()[0] || [];
-    if(headers.length === 0) {
-      // Khởi tạo cột tự động nếu sheet trống hoàn toàn
-       headers = ["Ten_Lop", "Ten_Hoc_Vien", "Ngay_Bat_Dau", "Loai_The", "So_Ngay_Vang", "The_Con_Lai"];
-       sheet.appendRow(headers);
+    var rawHeaders = sheet.getDataRange().getValues()[0] || [];
+    
+    // Khởi tạo cột tự động nếu sheet trống hoàn toàn (A1 rỗng khi sheet trắng)
+    if(rawHeaders.length === 0 || (rawHeaders.length === 1 && String(rawHeaders[0]).trim() === "")) {
+       rawHeaders = ["Ten_Lop", "Ten_Hoc_Vien", "Ngay_Bat_Dau", "Loai_The", "So_Ngay_Vang", "The_Con_Lai"];
+       sheet.clear();
+       sheet.appendRow(rawHeaders);
     }
+    
+    var headers = rawHeaders.map(function(h) { return String(h).trim(); });
 
     var newRowArr = new Array(headers.length);
     for (var i = 0; i < newRowArr.length; i++) {
@@ -90,6 +101,14 @@ function doPost(e) {
     var colCardType = headers.indexOf("Loai_The");
     var colAbsences = headers.indexOf("So_Ngay_Vang");
     var colRemaining = headers.indexOf("The_Con_Lai");
+
+    // Kiểm tra nếu tiêu đề cột trên Google Sheet bị sai (do người dùng tự gõ)
+    if(colClass === -1 || colName === -1 || colCardType === -1) {
+       return ContentService.createTextOutput(JSON.stringify({
+         status: 'error',
+         message: 'Lỗi: Dòng 1 của Sheet KHÔNG CÓ đủ các cột chuẩn (Ten_Lop, Ten_Hoc_Vien, Loai_The). Vui lòng gõ chính xác không dấu, không khoảng trắng dư!'
+       })).setMimeType(ContentService.MimeType.JSON);
+    }
 
     // Điền dữ liệu POST vào đúng thứ tự mảng Headers
     if(colClass !== -1) newRowArr[colClass] = payload.className;

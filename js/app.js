@@ -80,9 +80,16 @@ function renderClasses(data, isDemo = false) {
             let remain = std["The_Con_Lai"];
             const cardType = std["Loai_The"] || "0";
             if (remain === "" || remain === undefined) remain = cardType;
-            remain = parseInt(remain);
             
-            const isExpired = remain <= 0;
+            let isExpired = false;
+            let remainDisplay = remain;
+            
+            if(!isNaN(remain) && String(remain).trim() !== "") {
+                remainDisplay = parseInt(remain);
+                isExpired = remainDisplay <= 0;
+            }
+            
+            const cardLabel = (!isNaN(cardType) && String(cardType).trim() !== "") ? cardType + " Buổi" : cardType;
             const absences = std["So_Ngay_Vang"] || "0";
             
             html += `
@@ -90,9 +97,9 @@ function renderClasses(data, isDemo = false) {
                     <div class="student-info">
                         <h4>${std["Ten_Hoc_Vien"]}</h4>
                         <div class="student-stats">
-                            <span class="tag ${isExpired ? 'tag-danger' : 'tag-blue'}">Thẻ ${cardType} Buổi</span>
+                            <span class="tag ${isExpired ? 'tag-danger' : 'tag-blue'}">Thẻ ${cardLabel}</span>
                             <span style="display:inline-block; margin-top:5px;">
-                                Đã vắng: <b>${absences}</b> | Còn: <b style="${isExpired ? 'color: var(--danger); font-size:1.1rem' : 'color: var(--primary); font-size:1.1rem'}">${remain}</b>
+                                Đã vắng: <b>${absences}</b> | Còn: <b style="${isExpired ? 'color: var(--danger); font-size:1.1rem' : 'color: var(--primary); font-size:1.1rem'}">${remainDisplay}</b>
                             </span>
                             ${isExpired ? '<div style="color:#b91c1c; font-size:0.8rem; margin-top:5px; font-weight:700;">⚠️ Cần Mua Thẻ Mới (Gia hạn)!</div>' : ''}
                         </div>

@@ -127,7 +127,7 @@ function renderClasses(data, isDemo = false) {
                         <div class="student-stats">
                             <span class="tag ${isExpired ? 'tag-danger' : 'tag-blue'}">Thẻ ${cardLabel}</span>
                             <span style="display:inline-block; margin-top:5px;">
-                                Đã vắng: <b>${absences}</b> | Còn: <b style="${isExpired ? 'color: var(--danger); font-size:1.1rem' : 'color: var(--primary); font-size:1.1rem'}">${remainDisplay}</b>
+                                Đã vắng: <b>${absences}</b> | Còn: <b style="${isExpired ? 'color: var(--danger); font-size: 1.25rem; font-weight: 900;' : 'color: #0369a1; font-size: 1.25rem; font-weight: 900;'}">${remainDisplay}</b>
                             </span>
                             ${isExpired ? '<div style="color:#b91c1c; font-size:0.8rem; margin-top:5px; font-weight:700;">⚠️ Cần Mua Thẻ Mới (Gia hạn)!</div>' : ''}
                         </div>

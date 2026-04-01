@@ -1,6 +1,30 @@
 document.addEventListener("DOMContentLoaded", () => {
+    initTheme();
     loadData();
 });
+
+function initTheme() {
+    const savedTheme = localStorage.getItem('xooTheme');
+    if (savedTheme === 'baby-blue') {
+        document.documentElement.setAttribute('data-theme', 'baby-blue');
+        const btn = document.getElementById('btnThemeToggle');
+        if (btn) btn.innerText = '🎨 Giao diện Gốc';
+    }
+}
+
+function toggleTheme() {
+    const isBabyBlue = document.documentElement.getAttribute('data-theme') === 'baby-blue';
+    const btn = document.getElementById('btnThemeToggle');
+    if (isBabyBlue) {
+        document.documentElement.removeAttribute('data-theme');
+        localStorage.setItem('xooTheme', 'default');
+        if (btn) btn.innerText = '✨ Màu Baby Blue';
+    } else {
+        document.documentElement.setAttribute('data-theme', 'baby-blue');
+        localStorage.setItem('xooTheme', 'baby-blue');
+        if (btn) btn.innerText = '🎨 Giao diện Gốc';
+    }
+}
 
 let globalData = [];
 

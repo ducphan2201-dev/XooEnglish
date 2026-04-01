@@ -88,10 +88,13 @@ function renderClasses(data, isDemo = false) {
         classesMap[className].push(row);
     });
 
+    let delayIndex = 0;
     for(const [className, students] of Object.entries(classesMap)) {
         const classCard = document.createElement('div');
         const randomLeaf = Math.floor(Math.random() * 4) + 1; // Chọn lá từ 1 tới 4
         classCard.className = `class-card leaf-pos-${randomLeaf}`;
+        classCard.style.animationDelay = `${delayIndex * 0.08}s`; // Animation mọc lần lượt
+        delayIndex++;
         
         let html = `
             <div class="class-header">

@@ -29,11 +29,29 @@ function doPost(e) {
   var payload = JSON.parse(e.postData.contents);
   var action = payload.action; 
 
+  // Helper function to robustly compare dates regardless of Native Date or String formats
+  function normalizeDateStr(d) {
+      if (!d) return "";
+      if (d instanceof Date) {
+          return Utilities.formatDate(d, Session.getScriptTimeZone(), "yyyy-MM-dd");
+      }
+      var str = String(d).trim();
+      // Handle dd/MM/yyyy or d/M/yyyy
+      if (str.indexOf("/") !== -1) {
+          var p = str.split("/");
+          var day = ("0" + p[0]).slice(-2);
+          var month = ("0" + p[1]).slice(-2);
+          var year = p[2];
+          return year + "-" + month + "-" + day;
+      }
+      return str; 
+  }
+
   // ----- TÍNH NĂNG 1: ĐIỂM DANH -----
   if (action === "start_session") {
     var className = payload.className;
     var absences = payload.absences || []; 
-    var attendanceDate = payload.date || new Date().toISOString().split('T')[0];
+    var attendanceDate = normalizeDateStr(payload.date || new Date());
     
     // BƯỚC 0: Kiếm Tra Cổng Kiểm Soát (Khóa chốt 1 lần/ngày)
     var testSS = SpreadsheetApp.getActiveSpreadsheet();
@@ -41,10 +59,10 @@ function doPost(e) {
     if (checkHistorySheet) {
        var hData = checkHistorySheet.getDataRange().getValues();
        for (var j = 1; j < hData.length; j++) {
-           if (hData[j][0] == attendanceDate && hData[j][1] == className) {
+           if (normalizeDateStr(hData[j][0]) === attendanceDate && String(hData[j][1]).trim() === String(className).trim()) {
                return ContentService.createTextOutput(JSON.stringify({
                    status: 'error',
-                   message: 'Vui lòng kiểm tra lại: Lớp ' + className + ' ĐÃ ĐƯỢC CHỐT ĐIỂM DANH trong ngày ' + attendanceDate + '. Nếu có học viên đến muộn, hãy ra ngoài nhấn nút "Trừ Lẻ" tại tên học sinh đó để máy chủ tự động khắc phục Xoá Vắng!'
+                   message: 'Vui lòng kiểm tra lại: Lớp ' + className + ' ĐÃ ĐƯỢC CHỐT ĐIỂM DANH trong ngày hôm nay. Nếu có học viên đến muộn, hãy ra ngoài nhấn nút "➖ Trừ Lẻ" tại tên học viên đó để máy chủ tự động khắc phục xóa án Vắng!'
                })).setMimeType(ContentService.MimeType.JSON);
            }
        }
@@ -116,7 +134,7 @@ function doPost(e) {
   if (action === "deduct_individual") {
     var className = payload.className;
     var studentName = payload.studentName;
-    var attendanceDate = payload.date || new Date().toLocaleDateString('vi-VN');
+    var attendanceDate = normalizeDateStr(payload.date || new Date());
 
     var ss = SpreadsheetApp.getActiveSpreadsheet();
     var historySheet = ss.getSheetByName("Lich_Su_Diem_Danh");
@@ -126,7 +144,7 @@ function doPost(e) {
     if (historySheet) {
        var hData = historySheet.getDataRange().getValues();
        for (var j = 1; j < hData.length; j++) {
-           if (hData[j][0] == attendanceDate && hData[j][1] == className) {
+           if (normalizeDateStr(hData[j][0]) === attendanceDate && String(hData[j][1]).trim() === String(className).trim()) {
                var presentStr = String(hData[j][2]);
                var absentStr = String(hData[j][3]);
                

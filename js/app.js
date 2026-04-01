@@ -126,11 +126,14 @@ function renderClasses(data, isDemo = false) {
                         <h4>${std["Ten_Hoc_Vien"]}</h4>
                         <div class="student-stats">
                             <span class="tag ${isExpired ? 'tag-danger' : 'tag-blue'}">Thẻ ${cardLabel}</span>
-                            <span style="display:inline-block; margin-top:5px; align-items: center; justify-content: space-between; width: 100%;">
+                            <span style="display:flex; margin-top:5px; align-items: center; justify-content: space-between; width: 100%; gap: 5px; flex-wrap: wrap;">
                                 <span>Đã vắng: <b>${absences}</b> | Còn: <b style="${isExpired ? 'color: var(--danger); font-size: 1.25rem; font-weight: 900;' : 'color: #0369a1; font-size: 1.25rem; font-weight: 900;'}">${remainDisplay}</b></span>
-                                <button class="btn-renew" onclick="openRenewModal('${std["Ten_Hoc_Vien"]}', '${className}')">🔄 Gia Hạn Thẻ</button>
+                                <span>
+                                    <button class="btn-renew" style="background:#f59e0b; color:white; margin-right:5px; border:none; padding:4px 8px; font-size:0.75rem; border-radius:4px; cursor:pointer;" onclick="deductIndividual('${std["Ten_Hoc_Vien"]}', '${className}')">➖ Trừ Lẻ</button>
+                                    <button class="btn-renew" onclick="openRenewModal('${std["Ten_Hoc_Vien"]}', '${className}')">🔄 Gia Hạn</button>
+                                </span>
                             </span>
-                            ${isExpired ? '<div style="color:#b91c1c; font-size:0.8rem; margin-top:5px; font-weight:700;">⚠️ Cần Mua Thẻ Mới (Gia hạn)!</div>' : ''}
+                            ${isExpired ? '<div style="color:#b91c1c; font-size:0.8rem; margin-top:5px; font-weight:700;">⚠️ Cần Mua Thẻ Mới!</div>' : ''}
                         </div>
                     </div>
                     <label class="absence-toggle" title="Nếu học viên này nghỉ, TICK CHỌN để bảo lưu.">
@@ -143,9 +146,14 @@ function renderClasses(data, isDemo = false) {
 
         html += `
             </div>
-            <div class="card-footer">
-                <button class="btn-danger" onclick="startSession('${className}', ${isDemo})">
-                    BẤM ĐIỂM DANH LỚP HÔM NAY
+            </div>
+            <div class="card-footer" style="display:flex; flex-direction:column; gap: 12px;">
+                <div style="display:flex; justify-content: space-between; align-items:center;">
+                   <button class="btn-renew" style="float:none; margin:0;" onclick="openHistoryModal('${className}')">⏳ Xem Lịch Sử Lớp</button>
+                   <input type="date" id="date_${className}" value="${new Date().toISOString().split('T')[0]}" style="padding: 6px 10px; border-radius: 8px; border: 1px solid var(--border); outline: none; font-family: inherit; font-size: 0.9rem; font-weight: 600; color: #475569;" title="Chọn ngày điểm danh (Bù)">
+                </div>
+                <button class="btn-danger" id="btn_attend_${className}" onclick="startSession('${className}', ${isDemo})">
+                    BẤM CHỐT ĐIỂM DANH
                 </button>
             </div>
         `;
@@ -164,14 +172,21 @@ async function startSession(className, isDemo) {
     const url = (typeof CONFIG !== 'undefined' && CONFIG.API_URL ? CONFIG.API_URL : "").trim();
     if(!url) return;
 
+    const dateInput = document.getElementById("date_" + className);
+    const selectedDate = dateInput ? dateInput.value : new Date().toISOString().split('T')[0];
+    
+    const parts = selectedDate.split('-');
+    const displayDate = parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : selectedDate;
+
     const checkboxes = document.querySelectorAll(`input.absent-cb[data-class="${className}"]:checked`);
     const absentStudents = Array.from(checkboxes).map(cb => cb.value);
 
     const confirmMsg = absentStudents.length > 0 
-        ? `Xác nhận ĐIỂM DANH Lớp [${className}] hôm nay?\n\nDanh sách BẢO LƯU THẺ (${absentStudents.length} bạn giữ nguyên):\n👉 ${absentStudents.join(', ')}\n\n(Tất cả bạn CÓ MẶT còn lại TỰ ĐỘNG BỊ TRỪ 1 BUỔI!`
-        : `Xác nhận ĐIỂM DANH Lớp [${className}] hôm nay?\n\nTẤT CẢ HỌC VIÊN ĐỀU CÓ MẶT! 🥳\n(Hệ thống tự động trừ 1 buổi vào thẻ của Toàn lớp)`;
+        ? `Xác nhận ĐIỂM DANH Lớp [${className}] ngày ${displayDate}?\n\nDanh sách BẢO LƯU THẺ (${absentStudents.length} bạn giữ nguyên):\n👉 ${absentStudents.join(', ')}\n\n(Tất cả bạn CÓ MẶT còn lại TỰ ĐỘNG BỊ TRỪ 1 BUỔI!`
+        : `Xác nhận ĐIỂM DANH Lớp [${className}] ngày ${displayDate}?\n\nTẤT CẢ HỌC VIÊN ĐỀU CÓ MẶT! 🥳\n(Hệ thống tự động trừ 1 buổi vào thẻ của Toàn lớp)`;
 
     if(!confirm(confirmMsg)) return;
+
 
     const loader = document.getElementById("loader");
     loader.style.display = "block";
@@ -179,7 +194,8 @@ async function startSession(className, isDemo) {
     const payload = {
         action: "start_session",
         className: className,
-        absences: absentStudents
+        absences: absentStudents,
+        date: selectedDate
     };
 
     try {
@@ -328,5 +344,114 @@ async function submitForm(e) {
     } finally {
         btn.innerText = "Hoàn Tất Khai Báo";
         btn.disabled = false;
+    }
+}
+
+// ==== LOGIC LỊCH SỬ ĐIỂM DANH ====
+
+function closeHistoryModal() {
+    document.getElementById("historyModal").style.display = "none";
+}
+
+async function openHistoryModal(className) {
+    document.getElementById("historyClassName").innerText = className;
+    const tbody = document.getElementById("historyBody");
+    tbody.innerHTML = "";
+    document.getElementById("historyLoading").style.display = "block";
+    document.getElementById("historyModal").style.display = "flex";
+
+    const url = (typeof CONFIG !== 'undefined' && CONFIG.API_URL ? CONFIG.API_URL : "").trim();
+    if(!url) {
+        document.getElementById("historyLoading").innerText = "Chế độ Demo: Không có máy chủ cung cấp lịch sử.";
+        return;
+    }
+
+    try {
+        const response = await fetch(url, {
+            method: "POST",
+            body: JSON.stringify({ action: "get_history", className: className }),
+            headers: { "Content-Type": "text/plain;charset=utf-8" }
+        });
+        const result = await response.json();
+        document.getElementById("historyLoading").style.display = "none";
+        
+        if (result.status === 'success') {
+            const data = result.data || [];
+            if(data.length === 0) {
+                 tbody.innerHTML = `<tr><td colspan="3" style="text-align:center; padding: 25px; color: #64748b; font-style:italic;">Lớp này chưa có buổi Lịch sử điểm danh nào!</td></tr>`;
+                 return;
+            }
+            data.forEach(item => {
+                const tr = document.createElement("tr");
+                tr.style.borderBottom = "1px solid var(--border)";
+                
+                // Đồng bộ hiển thị chữ bất chấp dữ liệu cũ trong Excel
+                let displayAbsent = item.absent;
+                if (displayAbsent === "Đi học đủ" || displayAbsent === "Không có") displayAbsent = "Không có ai";
+
+                // Tránh tình trạng ngáo màu
+                const presentColor = item.present === "Không có ai" ? "#64748b" : "#059669";
+                const absentColor = displayAbsent === "Không có ai" ? "#059669" : "#dc2626";
+                const absentWeight = displayAbsent === "Không có ai" ? "600" : "700";
+
+                tr.innerHTML = `
+                   <td style="padding: 12px 10px; font-weight: 700;">${item.date}</td>
+                   <td style="padding: 12px 10px; color: ${presentColor}; font-weight: 600;">${item.present}</td>
+                   <td style="padding: 12px 10px; color: ${absentColor}; font-weight: ${absentWeight}; margin-left:1px;">${displayAbsent}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        } else {
+            document.getElementById("historyLoading").style.display = "block";
+            document.getElementById("historyLoading").innerText = "Lỗi: " + result.message;
+        }
+    } catch(err) {
+        document.getElementById("historyLoading").style.display = "block";
+        document.getElementById("historyLoading").innerHTML = `<span style="color:red">Lỗi: ${err.message}</span>`;
+        console.error("GET_HISTORY_ERROR:", err);
+    }
+}
+
+window.deductIndividual = async function(studentName, className) {
+    if (!confirm(`Bạn có chắc chắn muốn xử lý chức năng [THÊM 1 CA / XOÁ VẮNG] cho học viên ${studentName} trong ngày hôm nay không?\n\n(Hệ thống sẽ tự nhận diện: Nếu lỡ đánh vắng sẽ Trừ Thẻ + Xoá Vắng. Nếu có mặt sẵn sẽ Trừ Thẻ + Tăng 1 Ca)`)) return;
+
+    const url = (typeof CONFIG !== 'undefined' && CONFIG.API_URL ? CONFIG.API_URL : "").trim();
+
+    const dateInp = document.getElementById(`date-${className.replace(/\\s+/g, '')}`);
+    let selectedDate = dateInp ? dateInp.value : "";
+    if(!selectedDate) {
+        const today = new Date();
+        selectedDate = today.getDate() + '/' + (today.getMonth() + 1) + '/' + today.getFullYear();
+    } else {
+        const parts = selectedDate.split("-");
+        selectedDate = parseInt(parts[2]) + "/" + parseInt(parts[1]) + "/" + parts[0];
+    }
+    if(!url) {
+        alert("Tính năng Cấn Trừ Lẻ chỉ hoạt động khi có kết nối API thật!");
+        return;
+    }
+
+    const loader = document.getElementById("loader");
+    loader.style.display = "block";
+
+    try {
+        const response = await fetch(url, {
+            method: "POST",
+            body: JSON.stringify({ action: "deduct_individual", className: className, studentName: studentName, date: selectedDate }),
+            headers: {"Content-Type": "text/plain;charset=utf-8"}
+        });
+        const result = await response.json();
+        
+        if(result.status === 'success') {
+            alert("✅ Thành công: " + result.message);
+            loadData(); // Tải lại Bảng Tổng Danh Sách
+        } else {
+            alert("❌ Lỗi Server: " + result.message);
+        }
+    } catch(err) {
+        alert("❌ Lỗi Mạng: " + err.message);
+        console.error("DEDUCT_INDIVIDUAL_ERROR:", err);
+    } finally {
+        loader.style.display = "none";
     }
 }

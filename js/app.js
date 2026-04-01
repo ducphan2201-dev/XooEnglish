@@ -128,7 +128,7 @@ function renderClasses(data, isDemo = false) {
                             <span class="tag ${isExpired ? 'tag-danger' : 'tag-blue'}">Thẻ ${cardLabel}</span>
                             <span style="display:inline-block; margin-top:5px; align-items: center; justify-content: space-between; width: 100%;">
                                 <span>Đã vắng: <b>${absences}</b> | Còn: <b style="${isExpired ? 'color: var(--danger); font-size: 1.25rem; font-weight: 900;' : 'color: #0369a1; font-size: 1.25rem; font-weight: 900;'}">${remainDisplay}</b></span>
-                                <button class="tag tag-blue" style="cursor: pointer; font-size: 0.8rem; background: #10b981; color: white; border: none; padding: 6px 10px; float: right; transition: all 0.2s;" onmouseover="this.style.background='#059669'; this.style.transform='scale(1.05)';" onmouseout="this.style.background='#10b981'; this.style.transform='scale(1)';" onclick="openRenewModal('${std["Ten_Hoc_Vien"]}', '${className}')">🔄 Mua Thêm Thẻ</button>
+                                <button class="btn-renew" onclick="openRenewModal('${std["Ten_Hoc_Vien"]}', '${className}')">🔄 Gia Hạn Thẻ</button>
                             </span>
                             ${isExpired ? '<div style="color:#b91c1c; font-size:0.8rem; margin-top:5px; font-weight:700;">⚠️ Cần Mua Thẻ Mới (Gia hạn)!</div>' : ''}
                         </div>

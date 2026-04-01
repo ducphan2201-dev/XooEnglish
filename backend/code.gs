@@ -62,8 +62,12 @@ function doPost(e) {
           
           if (!isNaN(oldRemainingVal) && oldRemainingVal.toString().trim() !== "") {
             var remaining = parseInt(oldRemainingVal);
-            var newRemaining = remaining - 1;
-            sheet.getRange(i + 1, colRemaining + 1).setValue(newRemaining);
+            
+            // TÍNH NĂNG KHÓA THẺ: Nếu thẻ đã hết (<= 0), đóng băng (không trừ âm)
+            if (remaining > 0) {
+                var newRemaining = remaining - 1;
+                sheet.getRange(i + 1, colRemaining + 1).setValue(newRemaining);
+            }
           }
           updatedRows++;
         }
@@ -125,6 +129,51 @@ function doPost(e) {
       status: 'success',
       message: 'Đã Thêm học viên '+ payload.studentName +' vào Excel!'
     })).setMimeType(ContentService.MimeType.JSON);
+  }
+
+  // ----- TÍNH NĂNG 3: GIA HẠN THẺ HỌC PHÍ -----
+  if (action === "renew_card") {
+    var className = payload.className;
+    var studentName = payload.studentName;
+    var addAmount = payload.addAmount;
+    var newCardType = payload.newCardType;
+
+    var data = sheet.getDataRange().getValues();
+    var headers = (data[0] || []).map(function(h) { return String(h).trim(); });
+    
+    var colClass = headers.indexOf("Ten_Lop");
+    var colName = headers.indexOf("Ten_Hoc_Vien");
+    var colCardType = headers.indexOf("Loai_The");
+    var colRemaining = headers.indexOf("The_Con_Lai");
+    
+    if(colClass === -1 || colName === -1 || colRemaining === -1) {
+       return ContentService.createTextOutput(JSON.stringify({ status: 'error', message: 'Thiếu định dạng cột Gsheet!' })).setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    var renewed = false;
+    for (var i = 1; i < data.length; i++) {
+      if (data[i][colClass] === className && data[i][colName] === studentName) {
+        var oldRemaining = data[i][colRemaining] !== "" ? data[i][colRemaining] : data[i][colCardType];
+        
+        if (addAmount === "Theo khóa" || newCardType === "Theo khóa") {
+           sheet.getRange(i + 1, colRemaining + 1).setValue("Theo khóa");
+           if(colCardType !== -1) sheet.getRange(i + 1, colCardType + 1).setValue("Theo khóa");
+        } else {
+           var currentLeft = (!isNaN(oldRemaining) && oldRemaining.toString().trim() !== "") ? parseInt(oldRemaining) : 0;
+           var toAdd = parseInt(addAmount) || 0;
+           sheet.getRange(i + 1, colRemaining + 1).setValue(currentLeft + toAdd);
+           if(colCardType !== -1) sheet.getRange(i + 1, colCardType + 1).setValue(newCardType);
+        }
+        renewed = true;
+        break; // Stop after first match
+      }
+    }
+    
+    if(renewed) {
+      return ContentService.createTextOutput(JSON.stringify({ status: 'success', message: 'Nạp/Gia Hạn thành công thẻ mới cho ' + studentName })).setMimeType(ContentService.MimeType.JSON);
+    } else {
+      return ContentService.createTextOutput(JSON.stringify({ status: 'error', message: 'Lỗi: Không khớp tên hoặc lớp.' })).setMimeType(ContentService.MimeType.JSON);
+    }
   }
 }
 

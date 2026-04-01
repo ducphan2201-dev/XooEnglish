@@ -12,6 +12,7 @@
       <h1>XooEnglish Dashboard</h1>
       <p class="subtitle">Quản lý Học phí & Điểm danh 1-Chạm</p>
       <button class="btn-theme" onclick="toggleTheme()" id="btnThemeToggle">✨ Màu Baby Blue</button>
+      <button class="btn-theme" onclick="openHDSD()" style="top: 60px;">📖 Hướng Dẫn</button>
     </header>
 
     <!-- Nút thêm học sinh mới (Input Khai báo) -->
@@ -55,6 +56,41 @@
           </select>
         </div>
         <button type="submit" class="btn-primary" style="width:100%; margin-top:20px; padding:15px;" id="btnSubmitForm">Hoàn Tất Khai Báo</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Hướng Dẫn Sử Dụng -->
+  <div id="hdsdModal" class="modal-overlay">
+    <div class="modal-content" style="max-width: 900px; padding: 20px;">
+      <div class="modal-header" style="margin-bottom: 10px;">
+        <h3>📖 Hướng Dẫn Cấu Hình Nhanh</h3>
+        <span class="close-btn" onclick="closeHDSD()">&times;</span>
+      </div>
+      <img src="HDSD.png" alt="XooEnglish HDSD" style="width: 100%; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+    </div>
+  </div>
+
+  <!-- Modal Gia Hạn Học Phí -->
+  <div id="renewModal" class="modal-overlay">
+    <div class="modal-content" style="max-width: 480px; padding: 25px;">
+      <div class="modal-header" style="margin-bottom: 20px;">
+        <h3>🔄 Gia Hạn Thẻ Giờ Học</h3>
+        <span class="close-btn" onclick="closeRenewModal()">&times;</span>
+      </div>
+      <form id="renewForm" onsubmit="submitRenewForm(event)">
+        <p style="margin-bottom: 15px; color: #475569; font-size: 1.1rem;">Học viên: <b id="renewStudentName" style="color: #0f172a;"></b></p>
+        <input type="hidden" id="renewClassName">
+        <div class="form-group">
+          <label>Nạp thêm Thẻ Học Phí:</label>
+          <select id="inpRenewCard" required>
+            <option value="10">Gia hạn 10 buổi</option>
+            <option value="20">Gia hạn 20 buổi</option>
+            <option value="30">Gia hạn 30 buổi</option>
+            <option value="Theo khóa">Loại Trọn Khóa</option>
+          </select>
+        </div>
+        <button type="submit" class="btn-primary" style="width:100%; margin-top:10px; padding:15px; background: #10b981; border:none;" id="btnSubmitRenew">💳 Nạp Thẻ Nhập Hệ Thống</button>
       </form>
     </div>
   </div>

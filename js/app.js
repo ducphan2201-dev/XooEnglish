@@ -126,8 +126,9 @@ function renderClasses(data, isDemo = false) {
                         <h4>${std["Ten_Hoc_Vien"]}</h4>
                         <div class="student-stats">
                             <span class="tag ${isExpired ? 'tag-danger' : 'tag-blue'}">Thẻ ${cardLabel}</span>
-                            <span style="display:inline-block; margin-top:5px;">
-                                Đã vắng: <b>${absences}</b> | Còn: <b style="${isExpired ? 'color: var(--danger); font-size: 1.25rem; font-weight: 900;' : 'color: #0369a1; font-size: 1.25rem; font-weight: 900;'}">${remainDisplay}</b>
+                            <span style="display:inline-block; margin-top:5px; align-items: center; justify-content: space-between; width: 100%;">
+                                <span>Đã vắng: <b>${absences}</b> | Còn: <b style="${isExpired ? 'color: var(--danger); font-size: 1.25rem; font-weight: 900;' : 'color: #0369a1; font-size: 1.25rem; font-weight: 900;'}">${remainDisplay}</b></span>
+                                <button class="tag tag-blue" style="cursor: pointer; font-size: 0.8rem; background: #10b981; color: white; border: none; padding: 6px 10px; float: right; transition: all 0.2s;" onmouseover="this.style.background='#059669'; this.style.transform='scale(1.05)';" onmouseout="this.style.background='#10b981'; this.style.transform='scale(1)';" onclick="openRenewModal('${std["Ten_Hoc_Vien"]}', '${className}')">🔄 Mua Thêm Thẻ</button>
                             </span>
                             ${isExpired ? '<div style="color:#b91c1c; font-size:0.8rem; margin-top:5px; font-weight:700;">⚠️ Cần Mua Thẻ Mới (Gia hạn)!</div>' : ''}
                         </div>
@@ -210,6 +211,63 @@ function openModal() {
 }
 function closeModal() {
     document.getElementById("addModal").style.display = "none";
+}
+function openHDSD() {
+    document.getElementById("hdsdModal").style.display = "flex";
+}
+function closeHDSD() {
+    document.getElementById("hdsdModal").style.display = "none";
+}
+
+// ---- LOGIC MODAL GIA HẠN THẺ ----
+function openRenewModal(studentName, className) {
+    document.getElementById("renewStudentName").innerText = studentName;
+    document.getElementById("renewClassName").value = className;
+    document.getElementById("renewModal").style.display = "flex";
+}
+function closeRenewModal() {
+    document.getElementById("renewModal").style.display = "none";
+}
+
+async function submitRenewForm(e) {
+    e.preventDefault();
+    const url = (typeof CONFIG !== 'undefined' && CONFIG.API_URL ? CONFIG.API_URL : "").trim();
+    if(!url) return alert("Demo Mode: Tính năng Gia hạn cần kết nối với Google Sheets thật.");
+
+    const className = document.getElementById("renewClassName").value;
+    const studentName = document.getElementById("renewStudentName").innerText;
+    const cardVal = document.getElementById("inpRenewCard").value;
+    
+    const btn = document.getElementById("btnSubmitRenew");
+    btn.innerText = "Đang Đồng Bộ...";
+    btn.disabled = true;
+
+    try {
+        const response = await fetch(url, {
+            method: "POST",
+            body: JSON.stringify({ 
+                action: "renew_card", 
+                className: className, 
+                studentName: studentName, 
+                addAmount: cardVal, 
+                newCardType: cardVal 
+            }),
+            headers: { "Content-Type": "text/plain;charset=utf-8" }
+        });
+        const result = await response.json();
+        if(result.status === 'success') {
+            alert("✅ " + result.message);
+            closeRenewModal();
+            loadData(); // Cập nhật lại giao diện
+        } else {
+            alert("Lỗi GSheet: " + result.message);
+        }
+    } catch(err) {
+        alert("Lỗi Mạng: " + err.message);
+    } finally {
+        btn.innerText = "💳 Nạp Thẻ Nhập Hệ Thống";
+        btn.disabled = false;
+    }
 }
 
 async function submitForm(e) {

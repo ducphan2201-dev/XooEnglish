@@ -90,7 +90,8 @@ function renderClasses(data, isDemo = false) {
 
     for(const [className, students] of Object.entries(classesMap)) {
         const classCard = document.createElement('div');
-        classCard.className = 'class-card';
+        const randomLeaf = Math.floor(Math.random() * 4) + 1; // Chọn lá từ 1 tới 4
+        classCard.className = `class-card leaf-pos-${randomLeaf}`;
         
         let html = `
             <div class="class-header">

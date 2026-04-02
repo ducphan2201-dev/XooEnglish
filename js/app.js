@@ -1,4 +1,4 @@
-document.addEventListener("DOMContentLoaded", () => {
+﻿document.addEventListener("DOMContentLoaded", () => {
     initTheme();
     loadData();
 });
@@ -8,7 +8,7 @@ function initTheme() {
     if (savedTheme === 'baby-blue') {
         document.documentElement.setAttribute('data-theme', 'baby-blue');
         const btn = document.getElementById('btnThemeToggle');
-        if (btn) btn.innerText = '🎨 Giao diện Gốc';
+        if (btn) btn.innerText = 'ðŸŽ¨ Giao diá»‡n Gá»‘c';
     }
 }
 
@@ -18,22 +18,22 @@ function toggleTheme() {
     if (isBabyBlue) {
         document.documentElement.removeAttribute('data-theme');
         localStorage.setItem('xooTheme', 'default');
-        if (btn) btn.innerText = '✨ Màu Baby Blue';
+        if (btn) btn.innerText = 'âœ¨ MÃ u Baby Blue';
     } else {
         document.documentElement.setAttribute('data-theme', 'baby-blue');
         localStorage.setItem('xooTheme', 'baby-blue');
-        if (btn) btn.innerText = '🎨 Giao diện Gốc';
+        if (btn) btn.innerText = 'ðŸŽ¨ Giao diá»‡n Gá»‘c';
     }
 }
 
 let globalData = [];
 
-// KHAI BÁO DỮ LIỆU DEMO GIẢ LẬP
+// KHAI BÃO Dá»® LIá»†U DEMO GIáº¢ Láº¬P
 const demoData = [
-    { Ten_Lop: "IELTS 6.5 Nâng Cao", Ten_Hoc_Vien: "Nguyễn Văn A", Loai_The: "20", So_Ngay_Vang: "0", The_Con_Lai: "10" },
-    { Ten_Lop: "IELTS 6.5 Nâng Cao", Ten_Hoc_Vien: "Trần Thị B", Loai_The: "20", So_Ngay_Vang: "2", The_Con_Lai: "0" }, 
-    { Ten_Lop: "Giao Tiếp Phản Xạ", Ten_Hoc_Vien: "Phạm D", Loai_The: "10", So_Ngay_Vang: "0", The_Con_Lai: "1" },
-    { Ten_Lop: "Giao Tiếp Phản Xạ", Ten_Hoc_Vien: "Hoàng E", Loai_The: "20", So_Ngay_Vang: "5", The_Con_Lai: "15" },
+    { Ten_Lop: "IELTS 6.5 NÃ¢ng Cao", Ten_Hoc_Vien: "Nguyá»…n VÄƒn A", Loai_The: "20", So_Ngay_Vang: "0", The_Con_Lai: "10" },
+    { Ten_Lop: "IELTS 6.5 NÃ¢ng Cao", Ten_Hoc_Vien: "Tráº§n Thá»‹ B", Loai_The: "20", So_Ngay_Vang: "2", The_Con_Lai: "0" }, 
+    { Ten_Lop: "Giao Tiáº¿p Pháº£n Xáº¡", Ten_Hoc_Vien: "Pháº¡m D", Loai_The: "10", So_Ngay_Vang: "0", The_Con_Lai: "1" },
+    { Ten_Lop: "Giao Tiáº¿p Pháº£n Xáº¡", Ten_Hoc_Vien: "HoÃ ng E", Loai_The: "20", So_Ngay_Vang: "5", The_Con_Lai: "15" },
 ];
 
 async function loadData(forceLoader = false) {
@@ -52,7 +52,7 @@ async function loadData(forceLoader = false) {
         return;
     }
 
-    // 1. Phục hồi dữ liệu tức thì từ Bộ nhớ đệm (Cache)
+    // 1. Phá»¥c há»“i dá»¯ liá»‡u tá»©c thÃ¬ tá»« Bá»™ nhá»› Ä‘á»‡m (Cache)
     const cachedString = localStorage.getItem('xoo_cache_data');
     if (cachedString && !forceLoader) {
         try {
@@ -66,7 +66,7 @@ async function loadData(forceLoader = false) {
         if (!cachedString) container.innerHTML = "";
     }
 
-    // 2. Tải ngầm luồng phiên bản mới nhất từ Cloud
+    // 2. Táº£i ngáº§m luá»“ng phiÃªn báº£n má»›i nháº¥t tá»« Cloud
     try {
         const response = await fetch(url + "?t=" + new Date().getTime()); 
         const result = await response.json();
@@ -75,12 +75,12 @@ async function loadData(forceLoader = false) {
             const newString = JSON.stringify(result.data);
             if(result.data.length === 0) {
                if(!cachedString || cachedString !== "[]") {
-                   container.innerHTML = "<p style='color: #64748b; text-align: center; width: 100%; grid-column: 1/-1'>Chưa có học viên nào. Hãy bấm Khai báo Học Viên Mới!</p>";
+                   container.innerHTML = "<p style='color: #64748b; text-align: center; width: 100%; grid-column: 1/-1'>ChÆ°a cÃ³ há»c viÃªn nÃ o. HÃ£y báº¥m Khai bÃ¡o Há»c ViÃªn Má»›i!</p>";
                }
                localStorage.setItem('xoo_cache_data', "[]");
                globalData = [];
             } else {
-               // Render lại mượt mà NẾU như CSDL trên mây có thay đổi so với Cache
+               // Render láº¡i mÆ°á»£t mÃ  Náº¾U nhÆ° CSDL trÃªn mÃ¢y cÃ³ thay Ä‘á»•i so vá»›i Cache
                if (newString !== cachedString) {
                    globalData = result.data;
                    localStorage.setItem('xoo_cache_data', newString);
@@ -88,16 +88,16 @@ async function loadData(forceLoader = false) {
                }
             }
         } else {
-            console.error("Lỗi GSheet:", result.message);
+            console.error("Lá»—i GSheet:", result.message);
             if (!cachedString) {
-                alert("Lỗi GSheet: " + result.message);
+                alert("Lá»—i GSheet: " + result.message);
                 renderClasses(demoData, true); 
             }
         }
     } catch (err) {
-        console.error("Lỗi Mạng:", err);
+        console.error("Lá»—i Máº¡ng:", err);
         if(!cachedString) {
-            alert("Chưa kết nối CSDL thành công. Đang xem Dữ Liệu Demo Ảo.");
+            alert("ChÆ°a káº¿t ná»‘i CSDL thÃ nh cÃ´ng. Äang xem Dá»¯ Liá»‡u Demo áº¢o.");
             renderClasses(demoData, true);
         }
     } finally {
@@ -120,15 +120,15 @@ function renderClasses(data, isDemo = false) {
     let delayIndex = 0;
     for(const [className, students] of Object.entries(classesMap)) {
         const classCard = document.createElement('div');
-        const randomLeaf = Math.floor(Math.random() * 4) + 1; // Chọn lá từ 1 tới 4
+        const randomLeaf = Math.floor(Math.random() * 4) + 1; // Chá»n lÃ¡ tá»« 1 tá»›i 4
         classCard.className = `class-card leaf-pos-${randomLeaf}`;
-        classCard.style.animationDelay = `${delayIndex * 0.08}s`; // Animation mọc lần lượt
+        classCard.style.animationDelay = `${delayIndex * 0.08}s`; // Animation má»c láº§n lÆ°á»£t
         delayIndex++;
         
         let html = `
             <div class="class-header">
-                📚 ${className}
-                <span>Sĩ số: <b>${students.length}</b></span>
+                ðŸ“š ${className}
+                <span>SÄ© sá»‘: <b>${students.length}</b></span>
             </div>
             <div class="student-list" id="list-${className.replace(/\s+/g, '')}">
         `;
@@ -146,7 +146,7 @@ function renderClasses(data, isDemo = false) {
                 isExpired = remainDisplay <= 0;
             }
             
-            const cardLabel = (!isNaN(cardType) && String(cardType).trim() !== "") ? cardType + " Buổi" : cardType;
+            const cardLabel = (!isNaN(cardType) && String(cardType).trim() !== "") ? cardType + " Buá»•i" : cardType;
             const absences = std["So_Ngay_Vang"] || "0";
             
             html += `
@@ -154,19 +154,19 @@ function renderClasses(data, isDemo = false) {
                     <div class="student-info">
                         <h4>${std["Ten_Hoc_Vien"]}</h4>
                         <div class="student-stats">
-                            <span class="tag ${isExpired ? 'tag-danger' : 'tag-blue'}">Thẻ ${cardLabel}</span>
+                            <span class="tag ${isExpired ? 'tag-danger' : 'tag-blue'}">Tháº» ${cardLabel}</span>
                             <span style="display:flex; margin-top:5px; align-items: center; justify-content: space-between; width: 100%; gap: 5px; flex-wrap: wrap;">
-                                <span>Đã vắng: <b>${absences}</b> | Còn: <b style="${isExpired ? 'color: var(--danger); font-size: 1.25rem; font-weight: 900;' : 'color: #0369a1; font-size: 1.25rem; font-weight: 900;'}">${remainDisplay}</b></span>
+                                <span>ÄÃ£ váº¯ng: <b>${absences}</b> | CÃ²n: <b style="${isExpired ? 'color: var(--danger); font-size: 1.25rem; font-weight: 900;' : 'color: #0369a1; font-size: 1.25rem; font-weight: 900;'}">${remainDisplay}</b></span>
                                 <span>
-                                    <button class="btn-renew btn-deduct" onclick="deductIndividual('${std["Ten_Hoc_Vien"]}', '${className}')">➖ Trừ Lẻ</button>
-                                    <button class="btn-renew" onclick="openRenewModal('${std["Ten_Hoc_Vien"]}', '${className}')">🔄 Gia Hạn</button>
+                                    <button class="btn-renew btn-deduct" onclick="deductIndividual('${std["Ten_Hoc_Vien"]}', '${className}')">âž– Trá»« Láº»</button>
+                                    <button class="btn-renew" onclick="openRenewModal('${std["Ten_Hoc_Vien"]}', '${className}')">ðŸ”„ Gia Háº¡n</button>
                                 </span>
                             </span>
-                            ${isExpired ? '<div style="color:#b91c1c; font-size:0.8rem; margin-top:5px; font-weight:700;">⚠️ Cần Mua Thẻ Mới!</div>' : ''}
+                            ${isExpired ? '<div style="color:#b91c1c; font-size:0.8rem; margin-top:5px; font-weight:700;">âš ï¸ Cáº§n Mua Tháº» Má»›i!</div>' : ''}
                         </div>
                     </div>
-                    <label class="absence-toggle" title="Nếu học viên này nghỉ, TICK CHỌN để bảo lưu.">
-                        Vắng?
+                    <label class="absence-toggle" title="Náº¿u há»c viÃªn nÃ y nghá»‰, TICK CHá»ŒN Ä‘á»ƒ báº£o lÆ°u.">
+                        Váº¯ng?
                         <input type="checkbox" class="absent-cb" data-class="${className}" value="${std["Ten_Hoc_Vien"]}">
                     </label>
                 </div>
@@ -178,11 +178,11 @@ function renderClasses(data, isDemo = false) {
             </div>
             <div class="card-footer" style="display:flex; flex-direction:column; gap: 12px;">
                 <div style="display:flex; justify-content: space-between; align-items:center;">
-                   <button class="btn-renew" style="float:none; margin:0;" onclick="openHistoryModal('${className}')">⏳ Xem Lịch Sử Lớp</button>
-                   <input type="date" id="date_${className}" value="${new Date().toISOString().split('T')[0]}" style="padding: 6px 10px; border-radius: 8px; border: 1px solid var(--border); outline: none; font-family: inherit; font-size: 0.9rem; font-weight: 600; color: #475569;" title="Chọn ngày điểm danh (Bù)">
+                   <button class="btn-renew" style="float:none; margin:0;" onclick="openHistoryModal('${className}')">â³ Xem Lá»‹ch Sá»­ Lá»›p</button>
+                   <input type="date" id="date_${className}" value="${new Date().toISOString().split('T')[0]}" style="padding: 6px 10px; border-radius: 8px; border: 1px solid var(--border); outline: none; font-family: inherit; font-size: 0.9rem; font-weight: 600; color: #475569;" title="Chá»n ngÃ y Ä‘iá»ƒm danh (BÃ¹)">
                 </div>
                 <button class="btn-danger" id="btn_attend_${className}" onclick="startSession('${className}', ${isDemo})">
-                    BẤM CHỐT ĐIỂM DANH
+                    Báº¤M CHá»T ÄIá»‚M DANH
                 </button>
             </div>
         `;
@@ -194,7 +194,7 @@ function renderClasses(data, isDemo = false) {
 
 async function startSession(className, isDemo) {
     if(isDemo) {
-        alert("Demo Mode: Nút ĐIỂM DANH xử lý hoàn hảo! (Nhưng dữ liệu ảo sẽ không bị trừ trên Gsheet gốc).");
+        alert("Demo Mode: NÃºt ÄIá»‚M DANH xá»­ lÃ½ hoÃ n háº£o! (NhÆ°ng dá»¯ liá»‡u áº£o sáº½ khÃ´ng bá»‹ trá»« trÃªn Gsheet gá»‘c).");
         return;
     }
 
@@ -211,8 +211,8 @@ async function startSession(className, isDemo) {
     const absentStudents = Array.from(checkboxes).map(cb => cb.value);
 
     const confirmMsg = absentStudents.length > 0 
-        ? `Xác nhận ĐIỂM DANH Lớp [${className}] ngày ${displayDate}?\n\nDanh sách BẢO LƯU THẺ (${absentStudents.length} bạn giữ nguyên):\n👉 ${absentStudents.join(', ')}\n\n(Tất cả bạn CÓ MẶT còn lại TỰ ĐỘNG BỊ TRỪ 1 BUỔI!`
-        : `Xác nhận ĐIỂM DANH Lớp [${className}] ngày ${displayDate}?\n\nTẤT CẢ HỌC VIÊN ĐỀU CÓ MẶT! 🥳\n(Hệ thống tự động trừ 1 buổi vào thẻ của Toàn lớp)`;
+        ? `XÃ¡c nháº­n ÄIá»‚M DANH Lá»›p [${className}] ngÃ y ${displayDate}?\n\nDanh sÃ¡ch Báº¢O LÆ¯U THáºº (${absentStudents.length} báº¡n giá»¯ nguyÃªn):\nðŸ‘‰ ${absentStudents.join(', ')}\n\n(Táº¥t cáº£ báº¡n CÃ“ Máº¶T cÃ²n láº¡i Tá»° Äá»˜NG Bá»Š TRá»ª 1 BUá»”I!`
+        : `XÃ¡c nháº­n ÄIá»‚M DANH Lá»›p [${className}] ngÃ y ${displayDate}?\n\nTáº¤T Cáº¢ Há»ŒC VIÃŠN Äá»€U CÃ“ Máº¶T! ðŸ¥³\n(Há»‡ thá»‘ng tá»± Ä‘á»™ng trá»« 1 buá»•i vÃ o tháº» cá»§a ToÃ n lá»›p)`;
 
     if(!confirm(confirmMsg)) return;
 
@@ -228,28 +228,23 @@ async function startSession(className, isDemo) {
     };
 
     try {
-        const response = await fetch(url, {
-            method: "POST",
-            body: JSON.stringify(payload),
-            headers: { "Content-Type": "text/plain;charset=utf-8" }
-        });
-        const result = await response.json();
+        const result = await fetchGAS(url, payload);
         
         if(result.status === 'success') {
-            alert("✅ THÀNH CÔNG: " + result.message);
+            alert("âœ… THÃ€NH CÃ”NG: " + result.message);
             applyFastUpdate(result);
         } else {
-            alert("Gặp lỗi Cập nhật Excel: " + result.message);
+            alert("Gáº·p lá»—i Cáº­p nháº­t Excel: " + result.message);
         }
     } catch (err) {
-        alert("Lỗi kết nối từ phía Máy của bạn tới server Google: " + err.message);
+        alert("Lá»—i káº¿t ná»‘i tá»« phÃ­a MÃ¡y cá»§a báº¡n tá»›i server Google: " + err.message);
     } finally {
         loader.style.display = "none";
     }
 }
 
 // ----------------------------------------------------
-// LOGIC MODAL KHAI BÁO HỌC VIÊN
+// LOGIC MODAL KHAI BÃO Há»ŒC VIÃŠN
 // ----------------------------------------------------
 function openModal() {
     document.getElementById("addModal").style.display = "flex";
@@ -264,7 +259,7 @@ function closeHDSD() {
     document.getElementById("hdsdModal").style.display = "none";
 }
 
-// ---- LOGIC MODAL GIA HẠN THẺ ----
+// ---- LOGIC MODAL GIA Háº N THáºº ----
 function openRenewModal(studentName, className) {
     document.getElementById("renewStudentName").innerText = studentName;
     document.getElementById("renewClassName").value = className;
@@ -277,44 +272,33 @@ function closeRenewModal() {
 async function submitRenewForm(e) {
     e.preventDefault();
     const url = (typeof CONFIG !== 'undefined' && CONFIG.API_URL ? CONFIG.API_URL : "").trim();
-    if(!url) return alert("Demo Mode: Tính năng Gia hạn cần kết nối với Google Sheets thật.");
+    if(!url) return alert("Demo Mode: TÃ­nh nÄƒng Gia háº¡n cáº§n káº¿t ná»‘i vá»›i Google Sheets tháº­t.");
 
     const className = document.getElementById("renewClassName").value;
     const studentName = document.getElementById("renewStudentName").innerText;
     const cardVal = document.getElementById("inpRenewCard").value;
     
     const btn = document.getElementById("btnSubmitRenew");
-    btn.innerText = "Đang Đồng Bộ...";
+    btn.innerText = "Äang Äá»“ng Bá»™...";
     btn.disabled = true;
     
     const loader = document.getElementById("loader");
     if(loader) loader.style.display = "block";
 
     try {
-        const response = await fetch(url, {
-            method: "POST",
-            body: JSON.stringify({ 
-                action: "renew_card", 
-                className: className, 
-                studentName: studentName, 
-                addAmount: cardVal, 
-                newCardType: cardVal 
-            }),
-            headers: { "Content-Type": "text/plain;charset=utf-8" }
-        });
-        const result = await response.json();
+        const result = await fetchGAS(url, { action: "renew_card", className: className, studentName: studentName, addAmount: cardVal, newCardType: cardVal });
         if(result.status === 'success') {
-            alert("✅ " + result.message);
+            alert("âœ… " + result.message);
             closeRenewModal();
             applyFastUpdate(result);
         } else {
-            alert("Lỗi GSheet: " + result.message);
+            alert("Lá»—i GSheet: " + result.message);
         }
     } catch(err) {
-        alert("Lỗi Mạng: " + err.message);
+        alert("Lá»—i Máº¡ng: " + err.message);
     } finally {
         if(loader) loader.style.display = "none";
-        btn.innerText = "💳 Nạp Thẻ Nhập Hệ Thống";
+        btn.innerText = "ðŸ’³ Náº¡p Tháº» Nháº­p Há»‡ Thá»‘ng";
         btn.disabled = false;
     }
 }
@@ -328,7 +312,7 @@ async function submitForm(e) {
     const date = document.getElementById("inpDate").value;
     const card = document.getElementById("inpCard").value;
     
-    // Nếu chưa có CSDL thật -> Ghi vào mảng Ảo (Demo)
+    // Náº¿u chÆ°a cÃ³ CSDL tháº­t -> Ghi vÃ o máº£ng áº¢o (Demo)
     if(!url) {
         demoData.push({
             Ten_Lop: className, 
@@ -338,7 +322,7 @@ async function submitForm(e) {
             So_Ngay_Vang: "0", 
             The_Con_Lai: card
         });
-        alert("[Bản Demo] Đã tạo thành công Học Viên Mới!");
+        alert("[Báº£n Demo] ÄÃ£ táº¡o thÃ nh cÃ´ng Há»c ViÃªn Má»›i!");
         closeModal();
         document.getElementById("addForm").reset();
         loadData(true);
@@ -346,7 +330,7 @@ async function submitForm(e) {
     }
 
     const btn = document.getElementById("btnSubmitForm");
-    btn.innerText = "Đang Tự Động Ghi Vào Excel...";
+    btn.innerText = "Äang Tá»± Äá»™ng Ghi VÃ o Excel...";
     btn.disabled = true;
     
     const loader = document.getElementById("loader");
@@ -361,30 +345,25 @@ async function submitForm(e) {
     };
     
     try {
-        const response = await fetch(url, {
-            method: "POST",
-            body: JSON.stringify(payload),
-            headers: { "Content-Type": "text/plain;charset=utf-8" }
-        });
-        const result = await response.json();
+        const result = await fetchGAS(url, payload);
         if(result.status === 'success') {
-            alert("✅ " + result.message);
+            alert("âœ… " + result.message);
             closeModal();
             document.getElementById("addForm").reset();
             applyFastUpdate(result);
         } else {
-            alert("Lỗi Lưu từ GSheet: " + result.message);
+            alert("Lá»—i LÆ°u tá»« GSheet: " + result.message);
         }
     } catch(err) {
-        alert("Lỗi Đường truyền: " + err.message);
+        alert("Lá»—i ÄÆ°á»ng truyá»n: " + err.message);
     } finally {
         if(loader) loader.style.display = "none";
-        btn.innerText = "Hoàn Tất Khai Báo";
+        btn.innerText = "HoÃ n Táº¥t Khai BÃ¡o";
         btn.disabled = false;
     }
 }
 
-// ==== LOGIC LỊCH SỬ ĐIỂM DANH ====
+// ==== LOGIC Lá»ŠCH Sá»¬ ÄIá»‚M DANH ====
 
 function closeHistoryModal() {
     document.getElementById("historyModal").style.display = "none";
@@ -399,37 +378,32 @@ async function openHistoryModal(className) {
 
     const url = (typeof CONFIG !== 'undefined' && CONFIG.API_URL ? CONFIG.API_URL : "").trim();
     if(!url) {
-        document.getElementById("historyLoading").innerText = "Chế độ Demo: Không có máy chủ cung cấp lịch sử.";
+        document.getElementById("historyLoading").innerText = "Cháº¿ Ä‘á»™ Demo: KhÃ´ng cÃ³ mÃ¡y chá»§ cung cáº¥p lá»‹ch sá»­.";
         return;
     }
 
     try {
-        const response = await fetch(url, {
-            method: "POST",
-            body: JSON.stringify({ action: "get_history", className: className }),
-            headers: { "Content-Type": "text/plain;charset=utf-8" }
-        });
-        const result = await response.json();
+        const result = await fetchGAS(url, { action: "get_history", className: className });
         document.getElementById("historyLoading").style.display = "none";
         
         if (result.status === 'success') {
             const data = result.data || [];
             if(data.length === 0) {
-                 tbody.innerHTML = `<tr><td colspan="3" style="text-align:center; padding: 25px; color: #64748b; font-style:italic;">Lớp này chưa có buổi Lịch sử điểm danh nào!</td></tr>`;
+                 tbody.innerHTML = `<tr><td colspan="3" style="text-align:center; padding: 25px; color: #64748b; font-style:italic;">Lá»›p nÃ y chÆ°a cÃ³ buá»•i Lá»‹ch sá»­ Ä‘iá»ƒm danh nÃ o!</td></tr>`;
                  return;
             }
             data.forEach(item => {
                 const tr = document.createElement("tr");
                 tr.style.borderBottom = "1px solid var(--border)";
                 
-                // Đồng bộ hiển thị chữ bất chấp dữ liệu cũ trong Excel
+                // Äá»“ng bá»™ hiá»ƒn thá»‹ chá»¯ báº¥t cháº¥p dá»¯ liá»‡u cÅ© trong Excel
                 let displayAbsent = item.absent;
-                if (displayAbsent === "Đi học đủ" || displayAbsent === "Không có") displayAbsent = "Không có ai";
+                if (displayAbsent === "Äi há»c Ä‘á»§" || displayAbsent === "KhÃ´ng cÃ³") displayAbsent = "KhÃ´ng cÃ³ ai";
 
-                // Tránh tình trạng ngáo màu
-                const presentColor = item.present === "Không có ai" ? "#64748b" : "#059669";
-                const absentColor = displayAbsent === "Không có ai" ? "#059669" : "#dc2626";
-                const absentWeight = displayAbsent === "Không có ai" ? "600" : "700";
+                // TrÃ¡nh tÃ¬nh tráº¡ng ngÃ¡o mÃ u
+                const presentColor = item.present === "KhÃ´ng cÃ³ ai" ? "#64748b" : "#059669";
+                const absentColor = displayAbsent === "KhÃ´ng cÃ³ ai" ? "#059669" : "#dc2626";
+                const absentWeight = displayAbsent === "KhÃ´ng cÃ³ ai" ? "600" : "700";
 
                 tr.innerHTML = `
                    <td style="padding: 12px 10px; font-weight: 700;">${item.date}</td>
@@ -440,17 +414,17 @@ async function openHistoryModal(className) {
             });
         } else {
             document.getElementById("historyLoading").style.display = "block";
-            document.getElementById("historyLoading").innerText = "Lỗi: " + result.message;
+            document.getElementById("historyLoading").innerText = "Lá»—i: " + result.message;
         }
     } catch(err) {
         document.getElementById("historyLoading").style.display = "block";
-        document.getElementById("historyLoading").innerHTML = `<span style="color:red">Lỗi: ${err.message}</span>`;
+        document.getElementById("historyLoading").innerHTML = `<span style="color:red">Lá»—i: ${err.message}</span>`;
         console.error("GET_HISTORY_ERROR:", err);
     }
 }
 
 window.deductIndividual = async function(studentName, className) {
-    if (!confirm(`Bạn có chắc chắn muốn xử lý chức năng [THÊM 1 CA / XOÁ VẮNG] cho học viên ${studentName} trong ngày hôm nay không?\n\n(Hệ thống sẽ tự nhận diện: Nếu lỡ đánh vắng sẽ Trừ Thẻ + Xoá Vắng. Nếu có mặt sẵn sẽ Trừ Thẻ + Tăng 1 Ca)`)) return;
+    if (!confirm(`Báº¡n cÃ³ cháº¯c cháº¯n muá»‘n xá»­ lÃ½ chá»©c nÄƒng [THÃŠM 1 CA / XOÃ Váº®NG] cho há»c viÃªn ${studentName} trong ngÃ y hÃ´m nay khÃ´ng?\n\n(Há»‡ thá»‘ng sáº½ tá»± nháº­n diá»‡n: Náº¿u lá»¡ Ä‘Ã¡nh váº¯ng sáº½ Trá»« Tháº» + XoÃ¡ Váº¯ng. Náº¿u cÃ³ máº·t sáºµn sáº½ Trá»« Tháº» + TÄƒng 1 Ca)`)) return;
 
     const url = (typeof CONFIG !== 'undefined' && CONFIG.API_URL ? CONFIG.API_URL : "").trim();
 
@@ -464,7 +438,7 @@ window.deductIndividual = async function(studentName, className) {
         selectedDate = parseInt(parts[2]) + "/" + parseInt(parts[1]) + "/" + parts[0];
     }
     if(!url) {
-        alert("Tính năng Cấn Trừ Lẻ chỉ hoạt động khi có kết nối API thật!");
+        alert("TÃ­nh nÄƒng Cáº¥n Trá»« Láº» chá»‰ hoáº¡t Ä‘á»™ng khi cÃ³ káº¿t ná»‘i API tháº­t!");
         return;
     }
 
@@ -472,21 +446,16 @@ window.deductIndividual = async function(studentName, className) {
     loader.style.display = "block";
 
     try {
-        const response = await fetch(url, {
-            method: "POST",
-            body: JSON.stringify({ action: "deduct_individual", className: className, studentName: studentName, date: selectedDate }),
-            headers: {"Content-Type": "text/plain;charset=utf-8"}
-        });
-        const result = await response.json();
+        const result = await fetchGAS(url, { action: "deduct_individual", className: className, studentName: studentName, date: selectedDate });
         
         if(result.status === 'success') {
-            alert("✅ Thành công: " + result.message);
+            alert("âœ… ThÃ nh cÃ´ng: " + result.message);
             applyFastUpdate(result);
         } else {
-            alert("❌ Lỗi Server: " + result.message);
+            alert("âŒ Lá»—i Server: " + result.message);
         }
     } catch(err) {
-        alert("❌ Lỗi Mạng: " + err.message);
+        alert("âŒ Lá»—i Máº¡ng: " + err.message);
         console.error("DEDUCT_INDIVIDUAL_ERROR:", err);
     } finally {
         loader.style.display = "none";
@@ -502,3 +471,32 @@ function applyFastUpdate(result) {
         loadData(false);
     }
 }
+
+async function fetchGAS(url, payload, retries = 3) {
+    if(!url) return null;
+    try {
+        const response = await fetch(url, {
+            method: 'POST',
+            body: JSON.stringify(payload),
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+        });
+        const rawText = await response.text();
+        try {
+            return JSON.parse(rawText);
+        } catch(e) {
+            if (retries > 0) {
+                console.warn('[Auto-Retry] Máy ch? Google ph?n h?i HTML, dang th? l?i...', retries);
+                await new Promise(r => setTimeout(r, 1500));
+                return await fetchGAS(url, payload, retries - 1);
+            } throw new Error('Google Server Error');
+        }
+    } catch(err) {
+        if (retries > 0) {
+            console.warn('[Auto-Retry] L?i k?t n?i, dang th? l?i...', retries);
+            await new Promise(r => setTimeout(r, 1500));
+            return await fetchGAS(url, payload, retries - 1);
+        } throw err;
+    }
+}
+
+

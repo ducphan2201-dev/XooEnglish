@@ -237,7 +237,7 @@ async function startSession(className, isDemo) {
         
         if(result.status === 'success') {
             alert("✅ THÀNH CÔNG: " + result.message);
-            loadData(true);
+            applyFastUpdate(result);
         } else {
             alert("Gặp lỗi Cập nhật Excel: " + result.message);
         }
@@ -306,7 +306,7 @@ async function submitRenewForm(e) {
         if(result.status === 'success') {
             alert("✅ " + result.message);
             closeRenewModal();
-            loadData(true); // Cập nhật lại giao diện (Bắt buộc Fetch mây vì có thay đổi số)
+            applyFastUpdate(result);
         } else {
             alert("Lỗi GSheet: " + result.message);
         }
@@ -371,7 +371,7 @@ async function submitForm(e) {
             alert("✅ " + result.message);
             closeModal();
             document.getElementById("addForm").reset();
-            loadData(true); // Tải lại CSDL ép buộc từ mây vì có người mới
+            applyFastUpdate(result);
         } else {
             alert("Lỗi Lưu từ GSheet: " + result.message);
         }
@@ -481,7 +481,7 @@ window.deductIndividual = async function(studentName, className) {
         
         if(result.status === 'success') {
             alert("✅ Thành công: " + result.message);
-            loadData(true); // Ép tải lại dữ liệu mới từ backend
+            applyFastUpdate(result);
         } else {
             alert("❌ Lỗi Server: " + result.message);
         }
@@ -490,5 +490,15 @@ window.deductIndividual = async function(studentName, className) {
         console.error("DEDUCT_INDIVIDUAL_ERROR:", err);
     } finally {
         loader.style.display = "none";
+    }
+}
+
+function applyFastUpdate(result) {
+    if (result.updatedData) {
+        globalData = result.updatedData;
+        localStorage.setItem('xoo_cache_data', JSON.stringify(globalData));
+        renderClasses(globalData, false);
+    } else {
+        loadData(false);
     }
 }

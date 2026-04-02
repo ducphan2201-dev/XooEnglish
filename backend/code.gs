@@ -139,7 +139,8 @@ function doPost(e) {
       return ContentService.createTextOutput(JSON.stringify({
         status: 'success',
         message: 'Đã báo cáo xong sổ điểm danh ngày ' + attendanceDate,
-        updated_rows: updatedRows
+        updated_rows: updatedRows,
+        updatedData: formatDataForClient(data)
       })).setMimeType(ContentService.MimeType.JSON);
     }
 
@@ -242,7 +243,8 @@ function doPost(e) {
           var msg = hasLateArrivalFix ? 'Khắc phục Đi Muộn thành công: (Đã trừ 1 Thẻ, Xoá án vắng) cho học viên ' + studentName : 'Đã Trừ Lẻ 1 thẻ (Học gộp ca) cho học viên ' + studentName;
           return ContentService.createTextOutput(JSON.stringify({
               status: 'success',
-              message: msg
+              message: msg,
+              updatedData: formatDataForClient(data)
           })).setMimeType(ContentService.MimeType.JSON);
       } else {
           return ContentService.createTextOutput(JSON.stringify({
@@ -341,7 +343,8 @@ function doPost(e) {
 
       return ContentService.createTextOutput(JSON.stringify({
         status: 'success',
-        message: 'Đã Thêm học viên '+ payload.studentName +' vào Excel!'
+        message: 'Đã Thêm học viên '+ payload.studentName +' vào Excel!',
+        updatedData: formatDataForClient(sheet.getDataRange().getValues())
       })).setMimeType(ContentService.MimeType.JSON);
     }
 
@@ -386,7 +389,11 @@ function doPost(e) {
       
       if(renewed) {
         range.setValues(data); // Đập nguyên mảng cập nhật 1 lần
-        return ContentService.createTextOutput(JSON.stringify({ status: 'success', message: 'Nạp/Gia Hạn thành công thẻ mới cho ' + studentName })).setMimeType(ContentService.MimeType.JSON);
+        return ContentService.createTextOutput(JSON.stringify({ 
+             status: 'success', 
+             message: 'Nạp/Gia Hạn thành công thẻ mới cho ' + studentName, 
+             updatedData: formatDataForClient(data) 
+        })).setMimeType(ContentService.MimeType.JSON);
       } else {
         return ContentService.createTextOutput(JSON.stringify({ status: 'error', message: 'Lỗi: Không khớp tên hoặc lớp.' })).setMimeType(ContentService.MimeType.JSON);
       }
@@ -410,3 +417,17 @@ function doOptions(e) {
   };
   return ContentService.createTextOutput("").setHeaders(headers);
 }
+
+function formatDataForClient(dataArr) {
+    if(!dataArr || dataArr.length <= 1) return [];
+    var headers = dataArr[0].map(function(h) { return String(h).trim(); });
+    var rows = dataArr.slice(1);
+    return rows.map(function(row) {
+        var obj = {};
+        headers.forEach(function(header, idx) {
+            obj[header] = row[idx];
+        });
+        return obj;
+    });
+}
+

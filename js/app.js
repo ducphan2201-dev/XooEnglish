@@ -36,15 +36,14 @@ const demoData = [
     { Ten_Lop: "Giao Tiếp Phản Xạ", Ten_Hoc_Vien: "Hoàng E", Loai_The: "20", So_Ngay_Vang: "5", The_Con_Lai: "15" },
 ];
 
-async function loadData() {
+async function loadData(forceLoader = false) {
     const url = (typeof CONFIG !== 'undefined' && CONFIG.API_URL ? CONFIG.API_URL : "").trim();
     const loader = document.getElementById("loader");
     const container = document.getElementById("classContainer");
     
-    loader.style.display = "block";
-    container.innerHTML = "";
-
     if(!url) {
+        loader.style.display = "block";
+        container.innerHTML = "";
         setTimeout(() => {
             globalData = demoData;
             renderClasses(globalData, true);
@@ -53,26 +52,56 @@ async function loadData() {
         return;
     }
 
+    // 1. Phục hồi dữ liệu tức thì từ Bộ nhớ đệm (Cache)
+    const cachedString = localStorage.getItem('xoo_cache_data');
+    if (cachedString && !forceLoader) {
+        try {
+            globalData = JSON.parse(cachedString);
+            if (globalData && globalData.length > 0) {
+               renderClasses(globalData, false);
+            }
+        } catch(e) { console.error(e); }
+    } else if (forceLoader || !cachedString) {
+        loader.style.display = "block";
+        if (!cachedString) container.innerHTML = "";
+    }
+
+    // 2. Tải ngầm luồng phiên bản mới nhất từ Cloud
     try {
         const response = await fetch(url + "?t=" + new Date().getTime()); 
         const result = await response.json();
         
         if(result.status === 'success') {
-            globalData = result.data;
-            if(globalData.length === 0) {
-               container.innerHTML = "<p style='color: #64748b; text-align: center; width: 100%; grid-column: 1/-1'>Chưa có học viên nào. Hãy bấm Khai báo Học Viên Mới!</p>";
+            const newString = JSON.stringify(result.data);
+            if(result.data.length === 0) {
+               if(!cachedString || cachedString !== "[]") {
+                   container.innerHTML = "<p style='color: #64748b; text-align: center; width: 100%; grid-column: 1/-1'>Chưa có học viên nào. Hãy bấm Khai báo Học Viên Mới!</p>";
+               }
+               localStorage.setItem('xoo_cache_data', "[]");
+               globalData = [];
             } else {
-               renderClasses(globalData, false);
+               // Render lại mượt mà NẾU như CSDL trên mây có thay đổi so với Cache
+               if (newString !== cachedString) {
+                   globalData = result.data;
+                   localStorage.setItem('xoo_cache_data', newString);
+                   renderClasses(globalData, false);
+               }
             }
         } else {
-            alert("Lỗi GSheet: " + result.message);
-            renderClasses(demoData, true); 
+            console.error("Lỗi GSheet:", result.message);
+            if (!cachedString) {
+                alert("Lỗi GSheet: " + result.message);
+                renderClasses(demoData, true); 
+            }
         }
     } catch (err) {
-        alert("Chưa kết nối CSDL thành công. Đang xem Dữ Liệu Demo Ảo.");
-        renderClasses(demoData, true);
+        console.error("Lỗi Mạng:", err);
+        if(!cachedString) {
+            alert("Chưa kết nối CSDL thành công. Đang xem Dữ Liệu Demo Ảo.");
+            renderClasses(demoData, true);
+        }
     } finally {
-        loader.style.display = "none";
+        if(loader) loader.style.display = "none";
     }
 }
 
@@ -129,7 +158,7 @@ function renderClasses(data, isDemo = false) {
                             <span style="display:flex; margin-top:5px; align-items: center; justify-content: space-between; width: 100%; gap: 5px; flex-wrap: wrap;">
                                 <span>Đã vắng: <b>${absences}</b> | Còn: <b style="${isExpired ? 'color: var(--danger); font-size: 1.25rem; font-weight: 900;' : 'color: #0369a1; font-size: 1.25rem; font-weight: 900;'}">${remainDisplay}</b></span>
                                 <span>
-                                    <button class="btn-renew" style="background:#f59e0b; color:white; margin-right:5px; border:none; padding:4px 8px; font-size:0.75rem; border-radius:4px; cursor:pointer;" onclick="deductIndividual('${std["Ten_Hoc_Vien"]}', '${className}')">➖ Trừ Lẻ</button>
+                                    <button class="btn-renew btn-deduct" onclick="deductIndividual('${std["Ten_Hoc_Vien"]}', '${className}')">➖ Trừ Lẻ</button>
                                     <button class="btn-renew" onclick="openRenewModal('${std["Ten_Hoc_Vien"]}', '${className}')">🔄 Gia Hạn</button>
                                 </span>
                             </span>
@@ -208,7 +237,7 @@ async function startSession(className, isDemo) {
         
         if(result.status === 'success') {
             alert("✅ THÀNH CÔNG: " + result.message);
-            loadData();
+            loadData(true);
         } else {
             alert("Gặp lỗi Cập nhật Excel: " + result.message);
         }
@@ -274,7 +303,7 @@ async function submitRenewForm(e) {
         if(result.status === 'success') {
             alert("✅ " + result.message);
             closeRenewModal();
-            loadData(); // Cập nhật lại giao diện
+            loadData(true); // Cập nhật lại giao diện (Bắt buộc Fetch mây vì có thay đổi số)
         } else {
             alert("Lỗi GSheet: " + result.message);
         }
@@ -308,7 +337,7 @@ async function submitForm(e) {
         alert("[Bản Demo] Đã tạo thành công Học Viên Mới!");
         closeModal();
         document.getElementById("addForm").reset();
-        loadData();
+        loadData(true);
         return;
     }
 
@@ -335,7 +364,7 @@ async function submitForm(e) {
             alert("✅ " + result.message);
             closeModal();
             document.getElementById("addForm").reset();
-            loadData(); // Tải lại để hiện lên Giao diện
+            loadData(true); // Tải lại CSDL ép buộc từ mây vì có người mới
         } else {
             alert("Lỗi Lưu từ GSheet: " + result.message);
         }
@@ -444,7 +473,7 @@ window.deductIndividual = async function(studentName, className) {
         
         if(result.status === 'success') {
             alert("✅ Thành công: " + result.message);
-            loadData(); // Tải lại Bảng Tổng Danh Sách
+            loadData(true); // Ép tải lại dữ liệu mới từ backend
         } else {
             alert("❌ Lỗi Server: " + result.message);
         }

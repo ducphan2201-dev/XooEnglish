@@ -286,6 +286,9 @@ async function submitRenewForm(e) {
     const btn = document.getElementById("btnSubmitRenew");
     btn.innerText = "Đang Đồng Bộ...";
     btn.disabled = true;
+    
+    const loader = document.getElementById("loader");
+    if(loader) loader.style.display = "block";
 
     try {
         const response = await fetch(url, {
@@ -310,6 +313,7 @@ async function submitRenewForm(e) {
     } catch(err) {
         alert("Lỗi Mạng: " + err.message);
     } finally {
+        if(loader) loader.style.display = "none";
         btn.innerText = "💳 Nạp Thẻ Nhập Hệ Thống";
         btn.disabled = false;
     }
@@ -345,6 +349,9 @@ async function submitForm(e) {
     btn.innerText = "Đang Tự Động Ghi Vào Excel...";
     btn.disabled = true;
     
+    const loader = document.getElementById("loader");
+    if(loader) loader.style.display = "block";
+    
     const payload = {
         action: "add_student",
         className: className,
@@ -371,6 +378,7 @@ async function submitForm(e) {
     } catch(err) {
         alert("Lỗi Đường truyền: " + err.message);
     } finally {
+        if(loader) loader.style.display = "none";
         btn.innerText = "Hoàn Tất Khai Báo";
         btn.disabled = false;
     }

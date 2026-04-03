@@ -134,12 +134,27 @@
                 <input type="month" id="finMonth" required>
               </div>
             </div>
-            <div style="display:flex; gap: 10px; margin-bottom: 20px;">
+            <div style="display:flex; gap: 10px; margin-bottom: 12px;">
               <div class="form-group" style="flex:1;">
-                <label>Tổng Chi Phí Tháng (VNĐ)</label>
-                <input type="number" id="finCost" placeholder="Nhập tổng kết chi phí tháng...">
+                <label>Bill nền tảng (USD)</label>
+                <input type="number" step="0.01" id="finCostUSD" placeholder="Nhập gốc USD..." oninput="calcVND()">
+              </div>
+              <div class="form-group" style="flex:1;">
+                <label>Ngày sao kê (trừ tiền)</label>
+                <input type="date" id="finPayDate" onchange="fetchUSDRate(true)">
               </div>
             </div>
+            <div style="display:flex; gap: 10px; margin-bottom: 20px;">
+              <div class="form-group" style="flex:1;">
+                <label>Tỷ giá + Phí VPBank(~3%)</label>
+                <input type="number" id="finRate" placeholder="Đang lấy tỷ giá..." oninput="calcVND()">
+              </div>
+              <div class="form-group" style="flex:1;">
+                <label>Thành tiền (VNĐ)</label>
+                <input type="number" id="finCost" placeholder="Sẽ tự động tính..." style="background:#eff6ff;">
+              </div>
+            </div>
+            <small style="color:var(--text-muted); font-size:12px; display:block; margin-top:-10px; margin-bottom:20px; font-style:italic;">*Mẹo: Chọn ngày ra bill, hệ thống sẽ tự dò tỷ giá ngày đó cộng thêm biến độ ~3% phí quẹt thẻ ngoại tệ.</small>
 
             <h4>Bước 2: Cấu hình Mức Giá / 1 Học Sinh / 1 Buổi</h4>
             <div id="priceConfigContainer" style="max-height:150px; overflow-y:auto; border:1px solid #e2e8f0; padding:10px; border-radius:8px; margin-bottom: 20px;">

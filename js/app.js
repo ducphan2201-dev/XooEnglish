@@ -534,6 +534,61 @@ function switchFinanceTab(tab) {
         document.querySelector('.finance-tab:nth-child(2)').classList.add('active');
         document.getElementById('financePanelInput').classList.add('active');
         renderPriceConfigInputs();
+        fetchUSDRate(); // Fetch USD rate when opening input tab
+    }
+}
+
+async function fetchUSDRate(force = false) {
+    const rateEl = document.getElementById('finRate');
+    const dateEl = document.getElementById('finPayDate');
+    
+    // Set default date to today if empty
+    if (!dateEl.value) {
+        dateEl.valueAsDate = new Date();
+    }
+    
+    if (rateEl.value && !force) return; // already fetched
+    
+    rateEl.placeholder = "Đang tải...";
+    rateEl.value = "";
+    
+    try {
+        let dateStr = dateEl.value; // YYYY-MM-DD
+        
+        let url = `https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@${dateStr}/v1/currencies/usd.json`;
+        let res = await fetch(url);
+        
+        // If exact date fails (API sync issue), fallback to latest
+        if (!res.ok) {
+            url = `https://latest.currency-api.pages.dev/v1/currencies/usd.json`;
+            res = await fetch(url);
+        }
+        
+        const data = await res.json();
+        const baseRate = data.usd.vnd;
+        
+        const estimatedVPBankRate = Math.round(baseRate * 1.03); 
+        rateEl.value = estimatedVPBankRate;
+        calcVND();
+    } catch(err) {
+        console.error("Lỗi lấy tỷ giá lịch sử: ", err);
+        try {
+            const fbRes = await fetch('https://open.er-api.com/v6/latest/USD');
+            const fbData = await fbRes.json();
+            rateEl.value = Math.round(fbData.rates.VND * 1.03);
+            calcVND();
+        } catch(e) {
+            rateEl.value = 26500;
+            calcVND();
+        }
+    }
+}
+
+function calcVND() {
+    const usd = parseFloat(document.getElementById('finCostUSD').value) || 0;
+    const rate = parseFloat(document.getElementById('finRate').value) || 0;
+    if (usd > 0 && rate > 0) {
+        document.getElementById('finCost').value = Math.round(usd * rate);
     }
 }
 
@@ -672,6 +727,8 @@ async function submitFinanceConfig(e) {
             loadFinanceData(monthSelected);
             if (gatheredEl) gatheredEl.value = "";
             if (costEl) costEl.value = "";
+            let usdEl = document.getElementById("finCostUSD");
+            if (usdEl) usdEl.value = "";
         } else {
             alert("Lỗi GSheet: " + result.message);
         }

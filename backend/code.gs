@@ -458,9 +458,12 @@ function doPost(e) {
       var data = range.getValues();
       var headers = (data[0] || []).map(function(h) { return String(h).trim(); });
       var colClass = headers.indexOf("Ten_Lop");
+      var colRemaining = headers.indexOf("The_Con_Lai");
+      var colCardType = headers.indexOf("Loai_The");
       
       var mainClasses = {};
       var classStudentCount = {};
+      var classRemainingSessions = {};
       if (colClass !== -1) {
           for(var i=1; i<data.length; i++) {
               var c = String(data[i][colClass]).trim();
@@ -468,8 +471,17 @@ function doPost(e) {
                  if (!mainClasses[c]) {
                      mainClasses[c] = true;
                      classStudentCount[c] = 0;
+                     classRemainingSessions[c] = 0;
                  }
                  classStudentCount[c]++;
+                 
+                 var rem = data[i][colRemaining];
+                 if(rem === "" || rem === undefined || rem === null) {
+                     rem = parseInt(data[i][colCardType]) || 0;
+                 } else {
+                     rem = parseInt(rem) || 0;
+                 }
+                 classRemainingSessions[c] += rem;
               }
           }
       }
@@ -477,12 +489,13 @@ function doPost(e) {
       var sessionStats = [];
       var lifetimeRealized = 0;
       var monthGathered = 0;
-      var lifetimeGathered = 0;
+      var lifetimeDeferred = 0;
 
       Object.keys(classPrices).forEach(function(c) {
           if (!mainClasses[c]) {
               mainClasses[c] = true;
               classStudentCount[c] = 0; // Class in config but no students currently
+              classRemainingSessions[c] = 0;
           }
       });
 
@@ -496,6 +509,7 @@ function doPost(e) {
           
           monthGathered += (taughtMonth * pricePerSessionForClass);
           lifetimeRealized += (taughtLife * pricePerSessionForClass);
+          lifetimeDeferred += (classRemainingSessions[c] || 0) * pricePerStudent;
           sessionStats.push({
              "class_name": c,
              "price_per_session": pricePerSessionForClass,
@@ -509,9 +523,7 @@ function doPost(e) {
           });
       });
       
-      lifetimeGathered = lifetimeRealized;
-
-      var lifetimeDeferred = Math.max(0, lifetimeGathered - lifetimeRealized);
+      lifetimeGathered = lifetimeRealized + lifetimeDeferred;
 
       var totalClassPrices = 0;
       var classCountForPrice = 0;

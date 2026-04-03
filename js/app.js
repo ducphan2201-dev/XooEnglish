@@ -96,34 +96,42 @@ function prepareGlobalData() {
 function loadData(forceLoader = false) {
     if (!forceLoader) showLoader("Đang đồng bộ chớp nhoáng...");
 
-    if (typeof db === 'undefined') {
+    if (typeof db === 'undefined' || typeof firebase === 'undefined') {
         alert("Lỗi: Không tìm thấy Firebase. Hãy tải trang lại.");
         return;
     }
 
-    db.ref('/' + (CONFIG.DB_VAULT || '')).on('value', snapshot => {
-        const val = snapshot.val();
-        if (!val) {
-            globalData = [];
-            renderClasses([], false);
+    firebase.auth().signInAnonymously()
+        .then(() => {
+            db.ref('/' + (CONFIG.DB_VAULT || '')).on('value', snapshot => {
+                const val = snapshot.val();
+                if (!val) {
+                    globalData = [];
+                    renderClasses([], false);
+                    hideLoader();
+                    return;
+                }
+
+                window.fbData = val;
+                globalData = prepareGlobalData();
+                renderClasses(globalData, false);
+
+                if (document.getElementById("financeModal").style.display === "flex") {
+                    const m = document.getElementById("finMonth").value;
+                    loadFinanceData(m);
+                }
+                hideLoader();
+            }, error => {
+                console.error("Firebase Error: ", error);
+                alert("Mất kết nối với cơ sở dữ liệu!");
+                hideLoader();
+            });
+        })
+        .catch((error) => {
+            console.error("Auth Error: ", error);
+            alert("Lỗi Đăng Nhập Firebase (Bảo Mật): " + error.message);
             hideLoader();
-            return;
-        }
-
-        window.fbData = val;
-        globalData = prepareGlobalData();
-        renderClasses(globalData, false);
-
-        if (document.getElementById("financeModal").style.display === "flex") {
-            const m = document.getElementById("finMonth").value;
-            loadFinanceData(m);
-        }
-        hideLoader();
-    }, error => {
-        console.error("Firebase Error: ", error);
-        alert("Mất kết nối với cơ sở dữ liệu!");
-        hideLoader();
-    });
+        });
 }
 
 function renderClasses(data, isDemo = false) {

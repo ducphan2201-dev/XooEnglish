@@ -1,0 +1,52 @@
+HƯỚNG DẪN MỞ KHÓA BẢO MẬT & THÊM TÊN MIỀN MỚI CHO APP XOO ENGLISH
+
+Chào bạn, đây là File bí kíp cất giữ các bước Vượt Rào Bảo Mật Hệ Thống để bạn có thể tự xử lý trong tương lai. Lý do bạn cần File này là vì App của bạn đã được đắp 3 Lớp Khiên cực mạnh. Cứ mỗi lần bạn mang App này đi sao chép cắm vào một cái vỏ Web mới (Ví dụ: app.tienganh.com, hoặc xooenglish.edu.vn,...), nếu không làm các bước dưới đây, Web ở nhà mới sẽ chết lâm sàng ngay vì bị Google khóa cổ!
+
+------------------------------------------
+🔥 THAO TÁC 1: BẬT LAYER 3 (ĐĂNG NHẬP ẨN TRÊN FIREBASE)
+Mục đích: Cho phép người dùng kết nối bằng mã ẩn danh (Anonymous).
+(BẠN CẦN LÀM VIỆC NÀY LUÔN NGAY BÂY GIỜ ĐỂ APP KHÔNG BỊ LỖI!)
+
+1. Đăng nhập trang quản trị Firebase của bạn (https://console.firebase.google.com).
+2. Vào dự án XooEnglishApp. Nhìn bên trái, chọn "Authentication" (Nếu chưa cài bao giờ thì ấn Get Started).
+3. Chuyển sang thẻ "Sign-in method" (Phương thức đăng nhập).
+4. Kéo xuống dưới cùng tìm chức năng "Anonymous" (Ẩn danh).
+5. Bật nó sang trạng thái BẬT (Enable) rồi Save lại.
+6. Chuyển sang thẻ "Realtime Database" -> "Rules" (Quy tắc).
+7. Sửa chữ "true" thành "auth != null" ở cả read và write để kích hoạt khóa:
+{
+  "rules": {
+    "Xoo_Secret_Vault_2026": {
+       ".read": "auth != null",
+       ".write": "auth != null"
+    }
+  }
+}
+-> Bấm Publish. Xong bảo mật Layer 3!
+
+------------------------------------------
+💥 THAO TÁC 2: SAU NÀY NẾU MUỐN THÊM TÊN MIỀN MỚI VÀO GITHUB
+Mục đích: Khai báo tên miền để qua mặt trạm gác API Key (Layer 1).
+
+1. Truy cập https://console.cloud.google.com/
+2. Chọn dự án XooEnglish ở menu xổ trên cùng.
+3. Ở ô Tìm kiếm phía trên cùng (Giao diện kính lúp), gõ chữ: "API & Services" -> chọn nó -> chuyển sang thẻ "Credentials" (Thông tin xác thực ở menu bên trái).
+4. Bạn sẽ thấy 1 chùm chìa khóa API Key (Thường nó tên là Browser key hoặc Web API Key). Bấm vào Edit cái chìa đó.
+5. Cuộn xuống phần "Website Restrictions" (Khóa theo URL).
+6. Bấm "Add an Item" và dán đúng cái tên miền mới của bạn vào (Ví dụ: app.xooenglish.com/* ). Nhớ có dấu /* ở cuối để bao trọn nguyên trang web nhé.
+7. Save lại, đợi cỡ 5 phút sau tải lại trang web Mới là qua ải!
+
+------------------------------------------
+🔥 THAO TÁC 3: MỞ LAYER 2 CHIẾN THẦN (CHỐNG BOT TỐNG TIỀN LEVEL CAO NHẤT BẰNG APP CHECK)
+Mục đích: Cấp mã reCaptcha quét máy tính xem có phải con người đang thao tác không. (Tạo 1 lần xài mãi mãi cho tên miền đó).
+
+1. Vào Google reCAPTCHA trang chủ (https://www.google.com/recaptcha/admin/create).
+2. Label: "XooEnglish AppCheck". 
+3. Loại reCAPTCHA: Chọn "reCAPTCHA v3".
+4. Tên miền: Nhập tên miền web hiện tại (ví dụ: ducphan2201-dev.github.io).  -> Tương lai có tên miền mới thì vào đây Edit gõ thêm tên miền vào.
+5. Tạo xong, Google cho bạn 2 cái mã (Site Key và Secret Key).
+6. Quay lại trang Firebase Console -> Bên cột trái tìm mục "App Check". -> Tabs "Apps" -> Chọn Web App tên dự án của bạn -> Chọn Đăng ký bằng "reCAPTCHA v3". Dán Secret Key vào đó.
+7. Cuối cùng, để cho mã Web nhận diện, quay lại máy tính mở file: G:\My Drive\CODEAPP\XooEnglish\js\config.js. Tìm đến dòng "DANG_CHO_NHAP_KEY_RECAPTCHA", lấy cái Site Key dán đè vào đó.
+8. Commit và Push lên Git. Lúc này thì hacker bó tay thật sự rồi đó bạn ạ!
+
+> Lưu ý: Cài Layer 2 bằng AppCheck rất rất dễ dẫn tới App chập cheng đợi load (Chỉ làm khi thực sự cần thiết). Với Lớp 1 và 3 là quá đủ cho một trung tâm Anh ngữ an toàn rồi!

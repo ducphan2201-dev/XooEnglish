@@ -420,17 +420,11 @@ function doPost(e) {
       }
 
       var monthCost = 0;
-      var monthGathered = 0;
-      var lifetimeGathered = 0;
-
       var thuChiData = thuChiSheet.getDataRange().getValues();
       for (var i = 1; i < thuChiData.length; i++) {
          var t = String(thuChiData[i][0]).trim();
-         var thu = parseFloat(thuChiData[i][1]) || 0;
          var chi = parseFloat(thuChiData[i][2]) || 0;
-         lifetimeGathered += thu;
          if (monthParam && t === monthParam) {
-             monthGathered = thu;
              monthCost = chi;
          }
       }
@@ -475,6 +469,8 @@ function doPost(e) {
       
       var sessionStats = [];
       var lifetimeRealized = 0;
+      var monthGathered = 0;
+      var lifetimeGathered = 0;
 
       Object.keys(classPrices).forEach(function(c) {
           if (!mainClasses[c]) mainClasses[c] = true;
@@ -485,6 +481,7 @@ function doPost(e) {
           var taughtMonth = sessionsPerClassMonth[c] || 0;
           var taughtLife = sessionsPerClassLifetime[c] || 0;
           
+          monthGathered += (taughtMonth * price);
           lifetimeRealized += (taughtLife * price);
           sessionStats.push({
              "class_name": c,
@@ -496,6 +493,8 @@ function doPost(e) {
              "sessions_taught_lifetime": taughtLife
           });
       });
+      
+      lifetimeGathered = lifetimeRealized;
 
       var lifetimeDeferred = Math.max(0, lifetimeGathered - lifetimeRealized);
 

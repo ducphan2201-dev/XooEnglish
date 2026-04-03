@@ -637,8 +637,10 @@ async function submitFinanceConfig(e) {
     if(!url) return alert("Demo Mode: Tính năng lưu tài chính cần kết nối máy chủ thật.");
 
     const monthSelected = document.getElementById("finMonth").value; // yyyy-MM
-    let gathered = document.getElementById("finGathered").value;
-    let cost = document.getElementById("finCost").value;
+    let gatheredEl = document.getElementById("finGathered");
+    let costEl = document.getElementById("finCost");
+    
+    let cost = costEl ? costEl.value : undefined;
 
     const classPrices = {};
     document.querySelectorAll(".class-price-input").forEach(inp => {
@@ -653,7 +655,6 @@ async function submitFinanceConfig(e) {
         const payload = {
             action: "update_finance_inputs",
             month: monthSelected,
-            gathered: gathered ? parseFloat(gathered) : undefined,
             cost: cost ? parseFloat(cost) : undefined,
             class_prices: classPrices
         };
@@ -669,8 +670,8 @@ async function submitFinanceConfig(e) {
             alert("✅ " + result.message);
             switchFinanceTab('report');
             loadFinanceData(monthSelected);
-            document.getElementById("finGathered").value = "";
-            document.getElementById("finCost").value = "";
+            if (gatheredEl) gatheredEl.value = "";
+            if (costEl) costEl.value = "";
         } else {
             alert("Lỗi GSheet: " + result.message);
         }

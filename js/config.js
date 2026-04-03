@@ -11,6 +11,8 @@ const CONFIG = {
     FIREBASE_URL: "https://xooenglishapp-default-rtdb.firebaseio.com",
 
     // Mã khóa bảo mật (Hầm chứa dữ liệu ẩn)
+    DB_VAULT: "Xoo_Secret_Vault_2026",
+
     // --- CẤU HÌNH BẢO MẬT LỚP 2 (RECAPTCHA V3) ---
     // Mã này bạn sẽ lấy từ Firebase Console -> App Check
     RECAPTCHA_SITE_KEY: "DANG_CHO_NHAP_KEY_RECAPTCHA"

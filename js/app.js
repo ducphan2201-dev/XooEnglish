@@ -625,7 +625,7 @@ function renderPriceConfigInputs() {
         html += `
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
             <div style="font-weight:600; font-size:0.9rem;">${c.class_name}</div>
-            <input type="number" class="class-price-input" data-class="${c.class_name}" value="${c.price_per_session || 0}" style="width: 150px; padding:6px 10px; border:1px solid #cbd5e1; border-radius:6px;" placeholder="Giá/buổi">
+            <input type="number" class="class-price-input" data-class="${c.class_name}" value="${c.price_per_student || 0}" style="width: 150px; padding:6px 10px; border:1px solid #cbd5e1; border-radius:6px;" placeholder="Giá/1 HS/buổi">
         </div>`;
     });
     container.innerHTML = html;

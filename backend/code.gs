@@ -460,10 +460,17 @@ function doPost(e) {
       var colClass = headers.indexOf("Ten_Lop");
       
       var mainClasses = {};
+      var classStudentCount = {};
       if (colClass !== -1) {
           for(var i=1; i<data.length; i++) {
               var c = String(data[i][colClass]).trim();
-              if(c && !mainClasses[c]) mainClasses[c] = true;
+              if (c) {
+                 if (!mainClasses[c]) {
+                     mainClasses[c] = true;
+                     classStudentCount[c] = 0;
+                 }
+                 classStudentCount[c]++;
+              }
           }
       }
       
@@ -473,24 +480,32 @@ function doPost(e) {
       var lifetimeGathered = 0;
 
       Object.keys(classPrices).forEach(function(c) {
-          if (!mainClasses[c]) mainClasses[c] = true;
+          if (!mainClasses[c]) {
+              mainClasses[c] = true;
+              classStudentCount[c] = 0; // Class in config but no students currently
+          }
       });
 
       Object.keys(mainClasses).forEach(function(c) {
-          var price = classPrices[c] || 0;
+          var pricePerStudent = classPrices[c] || 0;
+          var studentCount = classStudentCount[c] || 0;
+          var pricePerSessionForClass = pricePerStudent * studentCount;
+          
           var taughtMonth = sessionsPerClassMonth[c] || 0;
           var taughtLife = sessionsPerClassLifetime[c] || 0;
           
-          monthGathered += (taughtMonth * price);
-          lifetimeRealized += (taughtLife * price);
+          monthGathered += (taughtMonth * pricePerSessionForClass);
+          lifetimeRealized += (taughtLife * pricePerSessionForClass);
           sessionStats.push({
              "class_name": c,
-             "price_per_session": price,
-             "revenue_session": price,
+             "price_per_session": pricePerSessionForClass,
+             "revenue_session": pricePerSessionForClass,
              "cost_session": costPerSessionGlobally,
-             "profit_session": price - costPerSessionGlobally,
+             "profit_session": pricePerSessionForClass - costPerSessionGlobally,
              "sessions_taught_month": taughtMonth,
-             "sessions_taught_lifetime": taughtLife
+             "sessions_taught_lifetime": taughtLife,
+             "student_count": studentCount,
+             "price_per_student": pricePerStudent
           });
       });
       

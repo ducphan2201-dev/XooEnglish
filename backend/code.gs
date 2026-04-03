@@ -398,6 +398,195 @@ function doPost(e) {
         return ContentService.createTextOutput(JSON.stringify({ status: 'error', message: 'Lỗi: Không khớp tên hoặc lớp.' })).setMimeType(ContentService.MimeType.JSON);
       }
     }
+    // ----- TÍNH NĂNG 4: FINANCE DASHBOARD -----
+    if (action === "get_finance_dashboard") {
+      var cauHinhSheet = ss.getSheetByName("Cau_Hinh_Tai_Chinh");
+      if (!cauHinhSheet) {
+          cauHinhSheet = ss.insertSheet("Cau_Hinh_Tai_Chinh");
+          cauHinhSheet.appendRow(["Ten_Lop", "Gia_Tien_Buoi"]);
+      }
+      var thuChiSheet = ss.getSheetByName("Lich_Su_Thu_Chi_Thang");
+      if (!thuChiSheet) {
+          thuChiSheet = ss.insertSheet("Lich_Su_Thu_Chi_Thang");
+          thuChiSheet.appendRow(["Thang_Nam", "Tong_Tien_Thu", "Tong_Chi_Phi"]);
+      }
+
+      var monthParam = payload.month || ""; // yyyy-MM
+      
+      var classPrices = {};
+      var cauHinhData = cauHinhSheet.getDataRange().getValues();
+      for (var i = 1; i < cauHinhData.length; i++) {
+         classPrices[String(cauHinhData[i][0]).trim()] = parseFloat(cauHinhData[i][1]) || 0;
+      }
+
+      var monthCost = 0;
+      var monthGathered = 0;
+      var lifetimeGathered = 0;
+
+      var thuChiData = thuChiSheet.getDataRange().getValues();
+      for (var i = 1; i < thuChiData.length; i++) {
+         var t = String(thuChiData[i][0]).trim();
+         var thu = parseFloat(thuChiData[i][1]) || 0;
+         var chi = parseFloat(thuChiData[i][2]) || 0;
+         lifetimeGathered += thu;
+         if (monthParam && t === monthParam) {
+             monthGathered = thu;
+             monthCost = chi;
+         }
+      }
+
+      // Count sessions
+      var historySheet = ss.getSheetByName("Lich_Su_Diem_Danh");
+      var historyData = historySheet ? historySheet.getDataRange().getValues() : [];
+      
+      var sessionsPerClassLifetime = {};
+      var sessionsPerClassMonth = {};
+      var totalSessionsMonth = 0;
+      
+      for (var i = 1; i < historyData.length; i++) {
+         var dStr = normalizeDateStr(historyData[i][0]); // yyyy-MM-dd
+         var cName = String(historyData[i][1]).trim();
+         
+         if (!sessionsPerClassLifetime[cName]) sessionsPerClassLifetime[cName] = 0;
+         sessionsPerClassLifetime[cName]++;
+         
+         if (monthParam && dStr.indexOf(monthParam) === 0) {
+             if (!sessionsPerClassMonth[cName]) sessionsPerClassMonth[cName] = 0;
+             sessionsPerClassMonth[cName]++;
+             totalSessionsMonth++;
+         }
+      }
+
+      var costPerSessionGlobally = totalSessionsMonth > 0 ? (monthCost / totalSessionsMonth) : 0;
+
+      // Class list from main Sheet
+      var range = sheet.getDataRange();
+      var data = range.getValues();
+      var headers = (data[0] || []).map(function(h) { return String(h).trim(); });
+      var colClass = headers.indexOf("Ten_Lop");
+      
+      var mainClasses = {};
+      if (colClass !== -1) {
+          for(var i=1; i<data.length; i++) {
+              var c = String(data[i][colClass]).trim();
+              if(c && !mainClasses[c]) mainClasses[c] = true;
+          }
+      }
+      
+      var sessionStats = [];
+      var lifetimeRealized = 0;
+
+      Object.keys(classPrices).forEach(function(c) {
+          if (!mainClasses[c]) mainClasses[c] = true;
+      });
+
+      Object.keys(mainClasses).forEach(function(c) {
+          var price = classPrices[c] || 0;
+          var taughtMonth = sessionsPerClassMonth[c] || 0;
+          var taughtLife = sessionsPerClassLifetime[c] || 0;
+          
+          lifetimeRealized += (taughtLife * price);
+          sessionStats.push({
+             "class_name": c,
+             "price_per_session": price,
+             "revenue_session": price,
+             "cost_session": costPerSessionGlobally,
+             "profit_session": price - costPerSessionGlobally,
+             "sessions_taught_month": taughtMonth,
+             "sessions_taught_lifetime": taughtLife
+          });
+      });
+
+      var lifetimeDeferred = Math.max(0, lifetimeGathered - lifetimeRealized);
+
+      var totalClassPrices = 0;
+      var classCountForPrice = 0;
+      Object.keys(classPrices).forEach(function(k) {
+         if(classPrices[k] > 0) { totalClassPrices += classPrices[k]; classCountForPrice++; }
+      });
+      var averagePrice = classCountForPrice > 0 ? (totalClassPrices / classCountForPrice) : 0;
+      var lifetimeSessionsSold = averagePrice > 0 ? (lifetimeGathered / averagePrice) : 0;
+      var lifetimeSessionsTaughtTotal = 0;
+      Object.keys(sessionsPerClassLifetime).forEach(function(k) { lifetimeSessionsTaughtTotal += sessionsPerClassLifetime[k]; });
+      
+      var dashboardData = {
+          session: sessionStats,
+          month: {
+             month_id: monthParam,
+             revenue: monthGathered,
+             cost: monthCost,
+             profit: monthGathered - monthCost,
+             total_sessions_month: totalSessionsMonth
+          },
+          lifetime: {
+             gathered: lifetimeGathered,
+             realized: lifetimeRealized,
+             deferred: lifetimeDeferred,
+             sessions_sold: Math.round(lifetimeSessionsSold),
+             sessions_taught: lifetimeSessionsTaughtTotal,
+             sessions_owed: Math.max(0, Math.round(lifetimeSessionsSold) - lifetimeSessionsTaughtTotal)
+          }
+      };
+
+      return ContentService.createTextOutput(JSON.stringify({ 
+         status: 'success', 
+         data: dashboardData 
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    if (action === "update_finance_inputs") {
+      var monthParam = payload.month;
+      
+      if(payload.class_prices) {
+         var cauHinhSheet = ss.getSheetByName("Cau_Hinh_Tai_Chinh");
+         if (!cauHinhSheet) { cauHinhSheet = ss.insertSheet("Cau_Hinh_Tai_Chinh"); cauHinhSheet.appendRow(["Ten_Lop", "Gia_Tien_Buoi"]); }
+         
+         var cauHinhData = cauHinhSheet.getDataRange().getValues();
+         var existing = {};
+         for (var i = 1; i < cauHinhData.length; i++) {
+             existing[String(cauHinhData[i][0]).trim()] = i;
+         }
+         
+         Object.keys(payload.class_prices).forEach(function(cName) {
+             var price = parseFloat(payload.class_prices[cName]) || 0;
+             if (existing[cName]) {
+                 cauHinhData[existing[cName]][1] = price;
+             } else {
+                 cauHinhData.push([cName, price]);
+                 existing[cName] = cauHinhData.length - 1;
+             }
+         });
+         cauHinhSheet.getRange(1, 1, cauHinhData.length, 2).setValues(cauHinhData);
+      }
+      
+      if(monthParam && (payload.gathered !== undefined || payload.cost !== undefined)) {
+         var thuChiSheet = ss.getSheetByName("Lich_Su_Thu_Chi_Thang");
+         if (!thuChiSheet) { thuChiSheet = ss.insertSheet("Lich_Su_Thu_Chi_Thang"); thuChiSheet.appendRow(["Thang_Nam", "Tong_Tien_Thu", "Tong_Chi_Phi"]); }
+         
+         var thuChiData = thuChiSheet.getDataRange().getValues();
+         var foundIdx = -1;
+         for (var i = 1; i < thuChiData.length; i++) {
+             if(String(thuChiData[i][0]).trim() === monthParam) {
+                 foundIdx = i; break;
+             }
+         }
+         
+         var newThu = parseFloat(payload.gathered) || 0;
+         var newChi = parseFloat(payload.cost) || 0;
+         if (foundIdx !== -1) {
+             thuChiData[foundIdx][1] = newThu;
+             thuChiData[foundIdx][2] = newChi;
+         } else {
+             thuChiData.push([monthParam, newThu, newChi]);
+         }
+         thuChiSheet.getRange(1, 1, thuChiData.length, 3).setValues(thuChiData);
+      }
+
+      return ContentService.createTextOutput(JSON.stringify({ 
+         status: 'success', 
+         message: 'Đã lưu cấu hình tài chính thành công!'
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
   } catch (error) {
      return ContentService.createTextOutput(JSON.stringify({
        status: 'error',

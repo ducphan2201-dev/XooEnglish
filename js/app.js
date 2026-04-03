@@ -502,3 +502,182 @@ function applyFastUpdate(result) {
         loadData(false);
     }
 }
+
+// ==== LOGIC QUẢN LÝ TÀI CHÍNH ====
+function openFinanceModal() {
+    document.getElementById("financeModal").style.display = "flex";
+    // Set default month to current month
+    const d = new Date();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const yyyy = d.getFullYear();
+    document.getElementById("finMonth").value = `${yyyy}-${mm}`;
+    
+    // Switch to report tab
+    switchFinanceTab('report');
+    
+    // Fetch data
+    loadFinanceData(`${yyyy}-${mm}`);
+}
+
+function closeFinanceModal() {
+    document.getElementById("financeModal").style.display = "none";
+}
+
+function switchFinanceTab(tab) {
+    document.querySelectorAll('.finance-tab').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.finance-panel').forEach(el => el.classList.remove('active'));
+    
+    if (tab === 'report') {
+        document.querySelector('.finance-tab:nth-child(1)').classList.add('active');
+        document.getElementById('financePanelReport').classList.add('active');
+    } else {
+        document.querySelector('.finance-tab:nth-child(2)').classList.add('active');
+        document.getElementById('financePanelInput').classList.add('active');
+        renderPriceConfigInputs();
+    }
+}
+
+async function loadFinanceData(monthParam) {
+    const url = (typeof CONFIG !== 'undefined' && CONFIG.API_URL ? CONFIG.API_URL : "").trim();
+    if(!url) {
+        document.getElementById("financeLoading").innerText = "Chế độ Demo: Chưa kết nối máy chủ để xem tài chính.";
+        return;
+    }
+
+    document.getElementById("financeLoading").style.display = "block";
+    document.getElementById("financeDashboardContent").style.display = "none";
+
+    try {
+        const response = await fetch(url, {
+            method: "POST",
+            body: JSON.stringify({ action: "get_finance_dashboard", month: monthParam }),
+            headers: { "Content-Type": "text/plain;charset=utf-8" }
+        });
+        const result = await response.json();
+        
+        if (result.status === 'success') {
+            document.getElementById("financeLoading").style.display = "none";
+            document.getElementById("financeDashboardContent").style.display = "block";
+            renderFinanceDashboard(result.data);
+            window.lastFinanceData = result.data;
+        } else {
+            document.getElementById("financeLoading").innerText = "Lỗi: " + result.message;
+        }
+    } catch(err) {
+        document.getElementById("financeLoading").innerHTML = `<span style="color:red">Lỗi mạng: ${err.message}</span>`;
+    }
+}
+
+function formatVND(num) {
+    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(num);
+}
+
+function renderFinanceDashboard(data) {
+    const lf = data.lifetime || {};
+    document.getElementById("lfGathered").innerText = formatVND(lf.gathered || 0);
+    document.getElementById("lfRealized").innerText = formatVND(lf.realized || 0);
+    document.getElementById("lfDeferred").innerText = formatVND(lf.deferred || 0);
+    document.getElementById("lfSold").innerText = lf.sessions_sold || 0;
+    document.getElementById("lfTaught").innerText = lf.sessions_taught || 0;
+    document.getElementById("lfOwed").innerText = lf.sessions_owed || 0;
+
+    const mo = data.month || {};
+    document.getElementById("monthTitleLabel").innerText = `(${mo.month_id})`;
+    document.getElementById("moRev").innerText = formatVND(mo.revenue || 0);
+    document.getElementById("moCost").innerText = formatVND(mo.cost || 0);
+    document.getElementById("moProfit").innerText = formatVND(mo.profit || 0);
+    document.getElementById("moSessions").innerText = mo.total_sessions_month || 0;
+
+    const tbody = document.getElementById("sessionStatsBody");
+    tbody.innerHTML = "";
+    if (data.session && data.session.length > 0) {
+        data.session.forEach(s => {
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+                <td><b>${s.class_name}</b></td>
+                <td style="color:#059669">${formatVND(s.price_per_session)}</td>
+                <td style="color:#dc2626">${formatVND(s.cost_session)}</td>
+                <td style="color:#4f46e5; font-weight:700">${formatVND(s.profit_session)}</td>
+                <td>${s.sessions_taught_month} buổi</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    } else {
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;">Chưa có dữ liệu lớp học</td></tr>`;
+    }
+}
+
+function renderPriceConfigInputs() {
+    const container = document.getElementById("priceConfigContainer");
+    if (!window.lastFinanceData || !window.lastFinanceData.session) {
+        container.innerHTML = `<div style="color: #64748b; font-size:0.9rem;">Đang tải danh sách lớp, vui lòng đợi...</div>`;
+        return;
+    }
+    
+    const classes = window.lastFinanceData.session;
+    if (classes.length === 0) {
+        container.innerHTML = `<div style="color: #64748b; font-size:0.9rem;">Chưa có lớp nào trong hệ thống.</div>`;
+        return;
+    }
+
+    let html = "";
+    classes.forEach(c => {
+        html += `
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <div style="font-weight:600; font-size:0.9rem;">${c.class_name}</div>
+            <input type="number" class="class-price-input" data-class="${c.class_name}" value="${c.price_per_session || 0}" style="width: 150px; padding:6px 10px; border:1px solid #cbd5e1; border-radius:6px;" placeholder="Giá/buổi">
+        </div>`;
+    });
+    container.innerHTML = html;
+}
+
+async function submitFinanceConfig(e) {
+    e.preventDefault();
+    const url = (typeof CONFIG !== 'undefined' && CONFIG.API_URL ? CONFIG.API_URL : "").trim();
+    if(!url) return alert("Demo Mode: Tính năng lưu tài chính cần kết nối máy chủ thật.");
+
+    const monthSelected = document.getElementById("finMonth").value; // yyyy-MM
+    let gathered = document.getElementById("finGathered").value;
+    let cost = document.getElementById("finCost").value;
+
+    const classPrices = {};
+    document.querySelectorAll(".class-price-input").forEach(inp => {
+        classPrices[inp.getAttribute("data-class")] = inp.value;
+    });
+
+    const btn = document.getElementById("btnSubmitFinance");
+    btn.innerText = "Đang Lưu...";
+    btn.disabled = true;
+
+    try {
+        const payload = {
+            action: "update_finance_inputs",
+            month: monthSelected,
+            gathered: gathered ? parseFloat(gathered) : undefined,
+            cost: cost ? parseFloat(cost) : undefined,
+            class_prices: classPrices
+        };
+
+        const response = await fetch(url, {
+            method: "POST",
+            body: JSON.stringify(payload),
+            headers: { "Content-Type": "text/plain;charset=utf-8" }
+        });
+        const result = await response.json();
+        
+        if (result.status === 'success') {
+            alert("✅ " + result.message);
+            switchFinanceTab('report');
+            loadFinanceData(monthSelected);
+            document.getElementById("finGathered").value = "";
+            document.getElementById("finCost").value = "";
+        } else {
+            alert("Lỗi GSheet: " + result.message);
+        }
+    } catch(err) {
+        alert("Lỗi Mạng: " + err.message);
+    } finally {
+        btn.innerText = "💾 Lưu Cấu Hình Tài Chính";
+        btn.disabled = false;
+    }
+}

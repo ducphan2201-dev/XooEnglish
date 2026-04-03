@@ -16,7 +16,10 @@
     </header>
 
     <!-- Nút thêm học sinh mới (Input Khai báo) -->
-    <button class="btn-primary btn-add" onclick="openModal()">+ Khai Báo Học Viên Mới</button>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
+      <button class="btn-primary btn-add" style="margin-bottom:0;" onclick="openModal()">+ Khai Báo Học Viên Mới</button>
+      <button class="btn-primary" style="background:#0f172a; color:#ffffff;" onclick="openFinanceModal()">📊 Báo Cáo Tài Chính</button>
+    </div>
 
     <div class="loader-overlay" id="loader" style="display:none;">
       <div class="loader-wrapper">
@@ -62,6 +65,97 @@
         </div>
         <button type="submit" class="btn-primary" style="width:100%; margin-top:20px; padding:15px;" id="btnSubmitForm">Hoàn Tất Khai Báo</button>
       </form>
+    </div>
+  </div>
+
+  <!-- Modal Báo Cáo Tài Chính -->
+  <div id="financeModal" class="modal-overlay">
+    <div class="modal-content" style="max-width: 800px; padding: 25px;">
+      <div class="modal-header" style="margin-bottom: 10px;">
+        <h3>📊 Bảng Điều Khiển Tài Chính</h3>
+        <span class="close-btn" onclick="closeFinanceModal()">&times;</span>
+      </div>
+      
+      <div class="finance-container">
+        <div class="finance-tabs">
+          <div class="finance-tab active" onclick="switchFinanceTab('report')">Phân Tích & Báo Cáo</div>
+          <div class="finance-tab" onclick="switchFinanceTab('input')">Nhập Liệu Cấu Hình</div>
+        </div>
+
+        <!-- Panel Báo Cáo -->
+        <div id="financePanelReport" class="finance-panel active">
+          <div id="financeLoading" style="text-align:center; padding: 20px; color: var(--text-muted); font-style: italic;">Đang tải dữ liệu tài chính...</div>
+          <div id="financeDashboardContent" style="display:none; max-height: 60vh; overflow-y: auto;">
+            
+            <h4 style="margin: 0 0 10px 0; color: var(--primary);">1. Toàn Thời Gian (Lifetime Tracking)</h4>
+            <div class="stats-grid">
+              <div class="stat-card"><h5>Tổng Tiền Đã Thu</h5><div class="value success" id="lfGathered">0</div></div>
+              <div class="stat-card"><h5>Doanh Thu Thực Tế (Đã Dạy)</h5><div class="value" id="lfRealized">0</div></div>
+              <div class="stat-card"><h5>Khách Hàng Trả Trước (Chưa Dạy)</h5><div class="value warning" id="lfDeferred">0</div></div>
+            </div>
+            <div class="stats-grid">
+              <div class="stat-card"><h5>Tổng Buổi Bán</h5><div class="value" id="lfSold">0</div></div>
+              <div class="stat-card"><h5>Số Buổi Đã Dạy</h5><div class="value" id="lfTaught">0</div></div>
+              <div class="stat-card"><h5>Số Buổi Nợ</h5><div class="value danger" id="lfOwed">0</div></div>
+            </div>
+
+            <h4 style="margin: 20px 0 10px 0; color: var(--primary);">2. Dữ Liệu Theo Tháng <span id="monthTitleLabel" style="color:#0f172a;"></span></h4>
+            <div class="stats-grid">
+              <div class="stat-card"><h5>Tổng Doanh Thu</h5><div class="value success" id="moRev">0</div></div>
+              <div class="stat-card"><h5>Tổng Chi Phí</h5><div class="value danger" id="moCost">0</div></div>
+              <div class="stat-card"><h5>Lợi Nhuận Tháng</h5><div class="value" id="moProfit" style="color: #4f46e5;">0</div></div>
+              <div class="stat-card"><h5>Số Buổi Dạy</h5><div class="value" id="moSessions">0</div></div>
+            </div>
+
+            <h4 style="margin: 20px 0 10px 0; color: var(--primary);">3. Báo Cáo Từng Buổi Theo Lớp Học</h4>
+            <table class="finance-table">
+              <thead>
+                <tr>
+                  <th>Tên Lớp</th>
+                  <th>Giá/Buổi</th>
+                  <th>Chi/Buổi</th>
+                  <th>Lợi Nhuận/Buổi</th>
+                  <th>Đã dạy tháng này</th>
+                </tr>
+              </thead>
+              <tbody id="sessionStatsBody"></tbody>
+            </table>
+
+          </div>
+        </div>
+
+        <!-- Panel Nhập Liệu -->
+        <div id="financePanelInput" class="finance-panel">
+          <form onsubmit="submitFinanceConfig(event)">
+            <h4 style="margin-top:0;">Bước 1: Cấu hình Tiền Thu & Chi Nhập Tay (Theo Tháng)</h4>
+            <div style="display:flex; gap: 10px; margin-bottom: 10px;">
+              <div class="form-group" style="flex:1;">
+                <label>Chọn Tháng (YYYY-MM)</label>
+                <input type="month" id="finMonth" required>
+              </div>
+            </div>
+            <div style="display:flex; gap: 10px; margin-bottom: 20px;">
+              <div class="form-group" style="flex:1;">
+                <label>Tổng Tiền Thu Về (VNĐ)</label>
+                <input type="number" id="finGathered" placeholder="Nhập số tiền...">
+              </div>
+              <div class="form-group" style="flex:1;">
+                <label>Tổng Chi Phí Tháng (VNĐ)</label>
+                <input type="number" id="finCost" placeholder="Nhập số tiền...">
+              </div>
+            </div>
+
+            <h4>Bước 2: Cấu hình Giá Tiền 1 Buổi cho các Lớp</h4>
+            <div id="priceConfigContainer" style="max-height:150px; overflow-y:auto; border:1px solid #e2e8f0; padding:10px; border-radius:8px; margin-bottom: 20px;">
+              <!-- Javascript render ra inputs giá tiền ở đây -->
+              <div style="color: #64748b; font-size:0.9rem;">Chưa lấy được danh sách lớp. Vui lòng tắt mở lại.</div>
+            </div>
+
+            <button type="submit" class="btn-primary" style="width:100%" id="btnSubmitFinance">💾 Lưu Cấu Hình Tài Chính</button>
+          </form>
+        </div>
+
+      </div>
     </div>
   </div>
 

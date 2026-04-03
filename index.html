@@ -99,7 +99,10 @@
               <div class="stat-card"><h5>Số Buổi Nợ</h5><div class="value danger" id="lfOwed">0</div></div>
             </div>
 
-            <h4 style="margin: 20px 0 10px 0; color: var(--primary);">2. Dữ Liệu Theo Tháng <span id="monthTitleLabel" style="color:#0f172a;"></span></h4>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin: 25px 0 10px 0;">
+              <h4 style="margin: 0; color: var(--primary);">2. Báo Cáo Theo Tháng <span id="monthTitleLabel" style="color:#0f172a;"></span></h4>
+              <input type="month" id="reportMonthPicker" style="padding: 6px 10px; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 14px; font-weight: 500; color: #1e293b;" onchange="changeReportMonth()">
+            </div>
             <div class="stats-grid">
               <div class="stat-card"><h5>Tổng Doanh Thu</h5><div class="value success" id="moRev">0</div></div>
               <div class="stat-card"><h5>Tổng Chi Phí</h5><div class="value danger" id="moCost">0</div></div>
@@ -108,18 +111,20 @@
             </div>
 
             <h4 style="margin: 20px 0 10px 0; color: var(--primary);">3. Báo Cáo Từng Buổi Theo Lớp Học</h4>
-            <table class="finance-table">
-              <thead>
-                <tr>
-                  <th>Tên Lớp</th>
-                  <th>Giá/Buổi</th>
-                  <th>Chi/Buổi</th>
-                  <th>Lợi Nhuận/Buổi</th>
-                  <th>Đã dạy tháng này</th>
-                </tr>
-              </thead>
-              <tbody id="sessionStatsBody"></tbody>
-            </table>
+            <div style="max-height: 235px; overflow-y: auto; border-bottom: 1px solid var(--border);">
+              <table class="finance-table" style="margin-top: 0;">
+                <thead style="position: sticky; top: 0; z-index: 10;">
+                  <tr>
+                    <th>Tên Lớp</th>
+                    <th>Giá/Buổi</th>
+                    <th>Chi/Buổi</th>
+                    <th>Lợi Nhuận/Buổi</th>
+                    <th>Đã dạy tháng này</th>
+                  </tr>
+                </thead>
+                <tbody id="sessionStatsBody"></tbody>
+              </table>
+            </div>
 
           </div>
         </div>

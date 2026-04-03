@@ -27,7 +27,7 @@ function doGet(e) {
 function doPost(e) {
   var lock = LockService.getScriptLock();
   try {
-    lock.waitLock(15000); // Đợi tối đa 15 giây nếu có người dùng khác đang ghi data
+    lock.waitLock(28000); // Đợi tối đa 28 giây (sát mốc 30s của hạn mức) chống gãy nghẽn khi có 20+ request cùng lúc
     
     var payload = JSON.parse(e.postData.contents);
     var action = payload.action; 
@@ -411,147 +411,17 @@ function doPost(e) {
           thuChiSheet.appendRow(["Thang_Nam", "Tong_Tien_Thu", "Tong_Chi_Phi"]);
       }
 
-      var monthParam = payload.month || ""; // yyyy-MM
-      
-      var classPrices = {};
-      var cauHinhData = cauHinhSheet.getDataRange().getValues();
-      for (var i = 1; i < cauHinhData.length; i++) {
-         classPrices[String(cauHinhData[i][0]).trim()] = parseFloat(cauHinhData[i][1]) || 0;
-      }
-
-      var monthCost = 0;
-      var thuChiData = thuChiSheet.getDataRange().getValues();
-      for (var i = 1; i < thuChiData.length; i++) {
-         var t = String(thuChiData[i][0]).trim();
-         var chi = parseFloat(thuChiData[i][2]) || 0;
-         if (monthParam && t === monthParam) {
-             monthCost = chi;
-         }
-      }
-
-      // Count sessions
+      var raw_config = cauHinhSheet.getDataRange().getValues();
+      var raw_cost = thuChiSheet.getDataRange().getValues();
       var historySheet = ss.getSheetByName("Lich_Su_Diem_Danh");
-      var historyData = historySheet ? historySheet.getDataRange().getValues() : [];
-      
-      var sessionsPerClassLifetime = {};
-      var sessionsPerClassMonth = {};
-      var totalSessionsMonth = 0;
-      
-      for (var i = 1; i < historyData.length; i++) {
-         var dStr = normalizeDateStr(historyData[i][0]); // yyyy-MM-dd
-         var cName = String(historyData[i][1]).trim();
-         
-         if (!sessionsPerClassLifetime[cName]) sessionsPerClassLifetime[cName] = 0;
-         sessionsPerClassLifetime[cName]++;
-         
-         if (monthParam && dStr.indexOf(monthParam) === 0) {
-             if (!sessionsPerClassMonth[cName]) sessionsPerClassMonth[cName] = 0;
-             sessionsPerClassMonth[cName]++;
-             totalSessionsMonth++;
-         }
-      }
+      var raw_history = historySheet ? historySheet.getDataRange().getValues() : [];
+      var main_data = sheet.getDataRange().getValues();
 
-      var costPerSessionGlobally = totalSessionsMonth > 0 ? (monthCost / totalSessionsMonth) : 0;
-
-      // Class list from main Sheet
-      var range = sheet.getDataRange();
-      var data = range.getValues();
-      var headers = (data[0] || []).map(function(h) { return String(h).trim(); });
-      var colClass = headers.indexOf("Ten_Lop");
-      var colRemaining = headers.indexOf("The_Con_Lai");
-      var colCardType = headers.indexOf("Loai_The");
-      
-      var mainClasses = {};
-      var classStudentCount = {};
-      var classRemainingSessions = {};
-      if (colClass !== -1) {
-          for(var i=1; i<data.length; i++) {
-              var c = String(data[i][colClass]).trim();
-              if (c) {
-                 if (!mainClasses[c]) {
-                     mainClasses[c] = true;
-                     classStudentCount[c] = 0;
-                     classRemainingSessions[c] = 0;
-                 }
-                 classStudentCount[c]++;
-                 
-                 var rem = data[i][colRemaining];
-                 if(rem === "" || rem === undefined || rem === null) {
-                     rem = parseInt(data[i][colCardType]) || 0;
-                 } else {
-                     rem = parseInt(rem) || 0;
-                 }
-                 classRemainingSessions[c] += rem;
-              }
-          }
-      }
-      
-      var sessionStats = [];
-      var lifetimeRealized = 0;
-      var monthGathered = 0;
-      var lifetimeDeferred = 0;
-
-      Object.keys(classPrices).forEach(function(c) {
-          if (!mainClasses[c]) {
-              mainClasses[c] = true;
-              classStudentCount[c] = 0; // Class in config but no students currently
-              classRemainingSessions[c] = 0;
-          }
-      });
-
-      Object.keys(mainClasses).forEach(function(c) {
-          var pricePerStudent = classPrices[c] || 0;
-          var studentCount = classStudentCount[c] || 0;
-          var pricePerSessionForClass = pricePerStudent * studentCount;
-          
-          var taughtMonth = sessionsPerClassMonth[c] || 0;
-          var taughtLife = sessionsPerClassLifetime[c] || 0;
-          
-          monthGathered += (taughtMonth * pricePerSessionForClass);
-          lifetimeRealized += (taughtLife * pricePerSessionForClass);
-          lifetimeDeferred += (classRemainingSessions[c] || 0) * pricePerStudent;
-          sessionStats.push({
-             "class_name": c,
-             "price_per_session": pricePerSessionForClass,
-             "revenue_session": pricePerSessionForClass,
-             "cost_session": costPerSessionGlobally,
-             "profit_session": pricePerSessionForClass - costPerSessionGlobally,
-             "sessions_taught_month": taughtMonth,
-             "sessions_taught_lifetime": taughtLife,
-             "student_count": studentCount,
-             "price_per_student": pricePerStudent
-          });
-      });
-      
-      lifetimeGathered = lifetimeRealized + lifetimeDeferred;
-
-      var totalClassPrices = 0;
-      var classCountForPrice = 0;
-      Object.keys(classPrices).forEach(function(k) {
-         if(classPrices[k] > 0) { totalClassPrices += classPrices[k]; classCountForPrice++; }
-      });
-      var averagePrice = classCountForPrice > 0 ? (totalClassPrices / classCountForPrice) : 0;
-      var lifetimeSessionsSold = averagePrice > 0 ? (lifetimeGathered / averagePrice) : 0;
-      var lifetimeSessionsTaughtTotal = 0;
-      Object.keys(sessionsPerClassLifetime).forEach(function(k) { lifetimeSessionsTaughtTotal += sessionsPerClassLifetime[k]; });
-      
       var dashboardData = {
-          session: sessionStats,
-          month: {
-             month_id: monthParam,
-             revenue: monthGathered,
-             cost: monthCost,
-             profit: monthGathered - monthCost,
-             total_sessions_month: totalSessionsMonth
-          },
-          lifetime: {
-             gathered: lifetimeGathered,
-             realized: lifetimeRealized,
-             deferred: lifetimeDeferred,
-             sessions_sold: Math.round(lifetimeSessionsSold),
-             sessions_taught: lifetimeSessionsTaughtTotal,
-             sessions_owed: Math.max(0, Math.round(lifetimeSessionsSold) - lifetimeSessionsTaughtTotal)
-          }
+          config: raw_config,
+          cost: raw_cost,
+          history: raw_history,
+          main: main_data
       };
 
       return ContentService.createTextOutput(JSON.stringify({ 

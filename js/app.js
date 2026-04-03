@@ -36,6 +36,9 @@ const demoData = [
     { Ten_Lop: "Giao Tiếp Phản Xạ", Ten_Hoc_Vien: "Hoàng E", Loai_The: "20", So_Ngay_Vang: "5", The_Con_Lai: "15" },
 ];
 
+function showLoader(msg = "Đang đồng bộ chớp nhoáng...") { document.getElementById("loader").style.display = "block"; const txtEl = document.querySelector("#loader .loader-wrapper div:nth-child(2)"); if(txtEl) txtEl.innerText = msg; }
+function hideLoader() { document.getElementById("loader").style.display = "none"; }
+
 async function loadData(forceLoader = false) {
     const url = (typeof CONFIG !== 'undefined' && CONFIG.API_URL ? CONFIG.API_URL : "").trim();
     const loader = document.getElementById("loader");
@@ -510,13 +513,24 @@ function openFinanceModal() {
     const d = new Date();
     const mm = String(d.getMonth() + 1).padStart(2, '0');
     const yyyy = d.getFullYear();
-    document.getElementById("finMonth").value = `${yyyy}-${mm}`;
+    const defaultMonth = `${yyyy}-${mm}`;
+    document.getElementById("finMonth").value = defaultMonth;
+    let reportPicker = document.getElementById("reportMonthPicker");
+    if(reportPicker) reportPicker.value = defaultMonth;
     
     // Switch to report tab
     switchFinanceTab('report');
     
     // Fetch data
-    loadFinanceData(`${yyyy}-${mm}`);
+    loadFinanceData(defaultMonth);
+}
+
+function changeReportMonth() {
+    let newMonth = document.getElementById("reportMonthPicker").value;
+    if (newMonth) {
+        document.getElementById("finMonth").value = newMonth; // Sync to input tab
+        loadFinanceData(newMonth); // Fetch new dashboard data immediately
+    }
 }
 
 function closeFinanceModal() {
@@ -592,11 +606,165 @@ function calcVND() {
     }
 }
 
+window.localRawFinance = window.localRawFinance || null;
+
+function calculateFinanceDashboard(monthParam, rawData) {
+    const cauHinhData = rawData.config || [];
+    const thuChiData = rawData.cost || [];
+    const historyData = rawData.history || [];
+    const mainData = rawData.main || [];
+
+    const classPrices = {};
+    for (let i = 1; i < cauHinhData.length; i++) {
+        classPrices[String(cauHinhData[i][0]).trim()] = parseFloat(cauHinhData[i][1]) || 0;
+    }
+
+    let monthCost = 0;
+    for (let i = 1; i < thuChiData.length; i++) {
+        const t = String(thuChiData[i][0]).trim();
+        const chi = parseFloat(thuChiData[i][2]) || 0;
+        if (monthParam && t === monthParam) {
+            monthCost = chi;
+        }
+    }
+
+    const sessionsPerClassLifetime = {};
+    const sessionsPerClassMonth = {};
+    let totalSessionsMonth = 0;
+
+    for (let i = 1; i < historyData.length; i++) {
+        let dStr = historyData[i][0];
+        if (typeof dStr === 'string' && dStr.includes('T')) {
+            const tempD = new Date(dStr);
+            dStr = `${tempD.getFullYear()}-${String(tempD.getMonth()+1).padStart(2,'0')}-${String(tempD.getDate()).padStart(2,'0')}`;
+        }
+        const cName = String(historyData[i][1]).trim();
+        
+        if (!sessionsPerClassLifetime[cName]) sessionsPerClassLifetime[cName] = 0;
+        sessionsPerClassLifetime[cName]++;
+        
+        if (monthParam && typeof dStr === 'string' && dStr.indexOf(monthParam) === 0) {
+            if (!sessionsPerClassMonth[cName]) sessionsPerClassMonth[cName] = 0;
+            sessionsPerClassMonth[cName]++;
+            totalSessionsMonth++;
+        }
+    }
+
+    const costPerSessionGlobally = totalSessionsMonth > 0 ? (monthCost / totalSessionsMonth) : 0;
+
+    const headers = (mainData[0] || []).map(h => String(h).trim());
+    const colClass = headers.indexOf("Ten_Lop");
+    const colRemaining = headers.indexOf("The_Con_Lai");
+    const colCardType = headers.indexOf("Loai_The");
+
+    const mainClasses = {};
+    const classStudentCount = {};
+    const classRemainingSessions = {};
+    if (colClass !== -1) {
+        for(let i=1; i<mainData.length; i++) {
+            const c = String(mainData[i][colClass]).trim();
+            if (c) {
+                if (!mainClasses[c]) {
+                    mainClasses[c] = true;
+                    classStudentCount[c] = 0;
+                    classRemainingSessions[c] = 0;
+                }
+                classStudentCount[c]++;
+                
+                let rem = mainData[i][colRemaining];
+                if(rem === "" || rem === undefined || rem === null) {
+                    rem = parseInt(mainData[i][colCardType]) || 0;
+                } else {
+                    rem = parseInt(rem) || 0;
+                }
+                classRemainingSessions[c] += rem;
+            }
+        }
+    }
+
+    const sessionStats = [];
+    let lifetimeRealized = 0;
+    let monthGathered = 0;
+    let lifetimeDeferred = 0;
+
+    Object.keys(classPrices).forEach(c => {
+        if (!mainClasses[c]) {
+            mainClasses[c] = true;
+            classStudentCount[c] = 0;
+            classRemainingSessions[c] = 0;
+        }
+    });
+
+    Object.keys(mainClasses).forEach(c => {
+        const pricePerStudent = classPrices[c] || 0;
+        const studentCount = classStudentCount[c] || 0;
+        const pricePerSessionForClass = pricePerStudent * studentCount;
+        
+        const taughtMonth = sessionsPerClassMonth[c] || 0;
+        const taughtLife = sessionsPerClassLifetime[c] || 0;
+        
+        monthGathered += (taughtMonth * pricePerSessionForClass);
+        lifetimeRealized += (taughtLife * pricePerSessionForClass);
+        lifetimeDeferred += (classRemainingSessions[c] || 0) * pricePerStudent;
+        sessionStats.push({
+            "class_name": c,
+            "price_per_session": pricePerSessionForClass,
+            "revenue_session": pricePerSessionForClass,
+            "cost_session": costPerSessionGlobally,
+            "profit_session": pricePerSessionForClass - costPerSessionGlobally,
+            "sessions_taught_month": taughtMonth,
+            "sessions_taught_lifetime": taughtLife,
+            "student_count": studentCount,
+            "price_per_student": pricePerStudent
+        });
+    });
+
+    const lifetimeGathered = lifetimeRealized + lifetimeDeferred;
+
+    let totalClassPrices = 0;
+    let classCountForPrice = 0;
+    Object.keys(classPrices).forEach(k => {
+        if(classPrices[k] > 0) { totalClassPrices += classPrices[k]; classCountForPrice++; }
+    });
+    const averagePrice = classCountForPrice > 0 ? (totalClassPrices / classCountForPrice) : 0;
+    const lifetimeSessionsSold = averagePrice > 0 ? (lifetimeGathered / averagePrice) : 0;
+    let lifetimeSessionsTaughtTotal = 0;
+    Object.keys(sessionsPerClassLifetime).forEach(k => { lifetimeSessionsTaughtTotal += sessionsPerClassLifetime[k]; });
+
+    return {
+        session: sessionStats,
+        month: {
+            month_id: monthParam,
+            revenue: monthGathered,
+            cost: monthCost,
+            profit: monthGathered - monthCost,
+            total_sessions_month: totalSessionsMonth
+        },
+        lifetime: {
+            gathered: lifetimeGathered,
+            realized: lifetimeRealized,
+            deferred: lifetimeDeferred,
+            sessions_sold: Math.round(lifetimeSessionsSold),
+            sessions_taught: lifetimeSessionsTaughtTotal,
+            sessions_owed: Math.max(0, Math.round(lifetimeSessionsSold) - lifetimeSessionsTaughtTotal)
+        }
+    };
+}
+
 async function loadFinanceData(monthParam) {
     const url = (typeof CONFIG !== 'undefined' && CONFIG.API_URL ? CONFIG.API_URL : "").trim();
     if(!url) {
         document.getElementById("financeLoading").innerText = "Chế độ Demo: Chưa kết nối máy chủ để xem tài chính.";
         return;
+    }
+
+    if (window.localRawFinance) {
+        document.getElementById("financeLoading").style.display = "none";
+        document.getElementById("financeDashboardContent").style.display = "block";
+        const d = calculateFinanceDashboard(monthParam, window.localRawFinance);
+        renderFinanceDashboard(d);
+        window.lastFinanceData = d;
+        return; // Zero network latency!
     }
 
     document.getElementById("financeLoading").style.display = "block";
@@ -613,8 +781,10 @@ async function loadFinanceData(monthParam) {
         if (result.status === 'success') {
             document.getElementById("financeLoading").style.display = "none";
             document.getElementById("financeDashboardContent").style.display = "block";
-            renderFinanceDashboard(result.data);
-            window.lastFinanceData = result.data;
+            window.localRawFinance = result.data;
+            const d = calculateFinanceDashboard(monthParam, window.localRawFinance);
+            renderFinanceDashboard(d);
+            window.lastFinanceData = d;
         } else {
             document.getElementById("financeLoading").innerText = "Lỗi: " + result.message;
         }

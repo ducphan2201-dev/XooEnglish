@@ -101,37 +101,29 @@ function loadData(forceLoader = false) {
         return;
     }
 
-    firebase.auth().signInAnonymously()
-        .then(() => {
-            db.ref('/' + (CONFIG.DB_VAULT || '')).on('value', snapshot => {
-                const val = snapshot.val();
-                if (!val) {
-                    globalData = [];
-                    renderClasses([], false);
-                    hideLoader();
-                    return;
-                }
-
-                window.fbData = val;
-                globalData = prepareGlobalData();
-                renderClasses(globalData, false);
-
-                if (document.getElementById("financeModal").style.display === "flex") {
-                    const m = document.getElementById("finMonth").value;
-                    loadFinanceData(m);
-                }
-                hideLoader();
-            }, error => {
-                console.error("Firebase Error: ", error);
-                alert("Mất kết nối với cơ sở dữ liệu!");
-                hideLoader();
-            });
-        })
-        .catch((error) => {
-            console.error("Auth Error: ", error);
-            alert("Lỗi Đăng Nhập Firebase (Bảo Mật): " + error.message);
+    db.ref('/' + (CONFIG.DB_VAULT || '')).on('value', snapshot => {
+        const val = snapshot.val();
+        if (!val) {
+            globalData = [];
+            renderClasses([], false);
             hideLoader();
-        });
+            return;
+        }
+
+        window.fbData = val;
+        globalData = prepareGlobalData();
+        renderClasses(globalData, false);
+
+        if (document.getElementById("financeModal").style.display === "flex") {
+            const m = document.getElementById("finMonth").value;
+            loadFinanceData(m);
+        }
+        hideLoader();
+    }, error => {
+        console.error("Firebase Error: ", error);
+        alert("Mất kết nối với cơ sở dữ liệu!");
+        hideLoader();
+    });
 }
 
 function renderClasses(data, isDemo = false) {

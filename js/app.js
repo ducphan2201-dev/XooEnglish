@@ -101,7 +101,7 @@ function loadData(forceLoader = false) {
         return;
     }
 
-    db.ref('/').on('value', snapshot => {
+    db.ref('/' + (CONFIG.DB_VAULT || '')).on('value', snapshot => {
         const val = snapshot.val();
         if (!val) {
             globalData = [];
@@ -279,7 +279,7 @@ async function startSession(className, isDemo) {
     ]);
 
     try {
-        await db.ref().update({
+        await db.ref('/' + (CONFIG.DB_VAULT || '')).update({
              '/Main': mainArr,
              '/Lich_Su_Diem_Danh': histArr
         });
@@ -357,7 +357,7 @@ async function submitRenewForm(e) {
 
     if (renewed) {
          try {
-             await db.ref('/Main').set(mainArr);
+             await db.ref('/' + (CONFIG.DB_VAULT || '') + '/Main').set(mainArr);
              alert("✅ Nạp thành công cho " + studentName);
              closeRenewModal();
          } catch(err) {
@@ -396,7 +396,7 @@ async function submitForm(e) {
     mainArr.push(newRow);
 
     try {
-        await db.ref('/Main').set(mainArr);
+        await db.ref('/' + (CONFIG.DB_VAULT || '') + '/Main').set(mainArr);
         alert("✅ Khai báo thành công!");
         closeModal();
         document.getElementById("addForm").reset();
@@ -530,7 +530,7 @@ window.deductIndividual = async function(studentName, className) {
     }
 
     try {
-        await db.ref().update({'/Main': mainArr, '/Lich_Su_Diem_Danh': histArr});
+        await db.ref('/' + (CONFIG.DB_VAULT || '')).update({'/Main': mainArr, '/Lich_Su_Diem_Danh': histArr});
         alert(hasLateArrivalFix ? `Đã xoá án vắng và trừ thẻ cho ${studentName}.` : `Đã trừ thẻ bù ngày cho ${studentName}.`);
     } catch(err) {
         alert("Lỗi DB: " + err.message);
@@ -909,7 +909,7 @@ async function submitFinanceConfig(e) {
     }
 
     try {
-        await db.ref().update({
+        await db.ref('/' + (CONFIG.DB_VAULT || '')).update({
             '/Cau_Hinh_Tai_Chinh': cauHinhData,
             '/Lich_Su_Thu_Chi_Thang': thuChiData
         });

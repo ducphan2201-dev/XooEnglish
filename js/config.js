@@ -8,7 +8,10 @@ const CONFIG = {
     ADMIN_PASS: "23071996",
 
     // URL Kết nối tới cơ sở dữ liệu Firebase Realtime
-    FIREBASE_URL: "https://xooenglishapp-default-rtdb.firebaseio.com"
+    FIREBASE_URL: "https://xooenglishapp-default-rtdb.firebaseio.com",
+
+    // Mã khóa bảo mật (Hầm chứa dữ liệu ẩn)
+    DB_VAULT: "Xoo_Secret_Vault_2026"
 };
 
 // Khởi tạo thư viện Firebase SDK

@@ -1,4 +1,4 @@
-var FIREBASE_URL = "https://xooenglishapp-default-rtdb.firebaseio.com";
+var FIREBASE_URL = "https://xooenglishapp-default-rtdb.firebaseio.com/Xoo_Secret_Vault_2026";
 
 // ----------------------------------------------------
 // TÍNH NĂNG 1: TẠO MENU TIỆN ÍCH CHO ADMIN VÀ GẮN TRIGGER

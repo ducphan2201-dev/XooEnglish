@@ -26,6 +26,41 @@ function toggleTheme() {
     }
 }
 
+
+function toggleAdmin() {
+    if (sessionStorage.getItem('isAdmin') === 'true') {
+        if(confirm("Bạn có muốn đăng xuất quyền Quản Trị Viên không?")) {
+            sessionStorage.removeItem('isAdmin');
+            applyAdminRules();
+        }
+        return;
+    }
+    const pass = prompt("Nhập mật khẩu Quản Trị Viên:\n(Vui lòng xem trong file config.js)");
+    const correctPass = typeof CONFIG !== 'undefined' && CONFIG.ADMIN_PASS ? CONFIG.ADMIN_PASS : "";
+    if (pass !== null && pass === correctPass) {
+        sessionStorage.setItem('isAdmin', 'true');
+        applyAdminRules();
+        alert("Đăng nhập quyền Quản trị thành công!");
+    } else if (pass !== null) {
+        alert("Sai mật khẩu!");
+    }
+}
+
+function applyAdminRules() {
+    const isAdmin = sessionStorage.getItem('isAdmin') === 'true';
+    const btnAdmin = document.getElementById('btnAdmin');
+    if (btnAdmin) {
+        btnAdmin.innerHTML = isAdmin ? "🔓 Thoát Quản Trị" : "🔒 Quản Trị Viên";
+        btnAdmin.style.background = isAdmin ? "var(--primary)" : "";
+        btnAdmin.style.color = isAdmin ? "#fff" : "";
+        btnAdmin.style.borderColor = isAdmin ? "var(--primary)" : "var(--border)";
+    }
+    const adminEls = document.querySelectorAll('.admin-only');
+    adminEls.forEach(el => {
+        el.style.display = isAdmin ? 'inline-block' : 'none';
+    });
+}
+
 let globalData = [];
 
 // KHAI BÁO DỮ LIỆU DEMO GIẢ LẬP

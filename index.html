@@ -13,12 +13,13 @@
       <p class="subtitle">Quản lý Học phí & Điểm danh 1-Chạm</p>
       <button class="btn-theme" onclick="toggleTheme()" id="btnThemeToggle">✨ Màu Baby Blue</button>
       <button class="btn-theme" onclick="openHDSD()" style="top: 60px;">📖 Hướng Dẫn</button>
+      <button class="btn-theme" onclick="toggleAdmin()" id="btnAdmin" style="top: 105px; border: 1px solid var(--border);">🔒 Quản Trị Viên</button>
     </header>
 
     <!-- Nút thêm học sinh mới (Input Khai báo) -->
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
       <button class="btn-primary btn-add" style="margin-bottom:0;" onclick="openModal()">+ Khai Báo Học Viên Mới</button>
-      <button class="btn-primary" style="background:#0f172a; color:#ffffff;" onclick="openFinanceModal()">📊 Báo Cáo Tài Chính</button>
+      <button class="btn-primary admin-only" id="btnFinance" style="background:#0f172a; color:#ffffff; display: none;" onclick="openFinanceModal()">📊 Báo Cáo Tài Chính</button>
     </div>
 
     <div class="loader-overlay" id="loader" style="display:none;">

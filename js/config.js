@@ -1,5 +1,5 @@
 /**
- * CẤU HÌNH HỆ THỐNG XOO ENGLISH
+ * CẤU HÌNH HỆ THỐNG XOO ENGLISH (Phiên Bản Tốc Độ Cao Firebase)
  * Vùng dành riêng cho Developer / Người quản trị
  */
 
@@ -7,7 +7,15 @@ const CONFIG = {
     // Mật khẩu để mở khóa các tính năng Quản Trị Viên (như Báo cáo tài chính)
     ADMIN_PASS: "23071996",
 
-    // Để trống chuỗi này ("", hoặc null) hệ thống sẽ chạy ở chế độ DEMO Ảo
-    // Nhập URL web app Google Apps Script vào đây để kết nối CSDL Thật
-    API_URL: "https://script.google.com/macros/s/AKfycbxtYUyZR6Fj1ugKg0ETU7Ec_c92Uk6qABGHlan_gMkRw8WL8mBGgO61hr9z07_dEEmP/exec"
+    // URL Kết nối tới cơ sở dữ liệu Firebase Realtime
+    FIREBASE_URL: "https://xooenglishapp-default-rtdb.firebaseio.com"
 };
+
+// Khởi tạo thư viện Firebase SDK
+if (typeof firebase !== 'undefined') {
+    firebase.initializeApp({
+        databaseURL: CONFIG.FIREBASE_URL
+    });
+    // Biến db dùng để gọi các tính năng đọc/ghi toàn cục
+    window.db = firebase.database();
+}

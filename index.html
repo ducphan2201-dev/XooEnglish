@@ -180,30 +180,39 @@
   <div id="hdsdModal" class="modal-overlay">
     <div class="modal-content" style="max-width: 900px; padding: 20px;">
       <div class="modal-header" style="margin-bottom: 10px;">
-        <h3>📖 Hướng Dẫn Cấu Hình Nhanh</h3>
-        <span class="close-btn" onclick="closeHDSD()">&times;</span>
-      </div>
-      <div style="padding: 10px; line-height: 1.6; color: var(--text);">
-        <h4 style="color: var(--primary); margin-bottom: 15px; font-size: 1.1rem; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px;">🚀 TÍNH NĂNG CỐT LÕI</h4>
+      <div style="padding: 10px; line-height: 1.6; color: var(--text); font-size: 0.95rem;">
+        <h4 style="color: var(--primary); margin-bottom: 15px; font-size: 1.2rem; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px;">🚀 HƯỚNG DẪN CHI TIẾT TÍNH NĂNG CỐT LÕI</h4>
         
-        <div style="margin-bottom: 15px; background: #f8fafc; padding: 12px; border-radius: 8px; border-left: 4px solid #3b82f6;">
-            <strong style="color: #1e293b;">🖱️ 1. Điểm Danh 1-Chạm:</strong> 
-            Nhấn <span style="background: #ef4444; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.8rem; font-weight:bold;">BẤM CHỐT ĐIỂM DANH</span> ở mỗi thẻ học viên. Hệ thống tự động lưu lịch sử ngày hôm nay và trừ đi 1 buổi trong "Thẻ Còn Lại".
+        <div style="margin-bottom: 15px; background: #f8fafc; padding: 15px; border-radius: 8px; border-left: 4px solid #3b82f6;">
+            <strong style="color: #1e293b; font-size: 1.05rem;">🖱️ 1. Điểm Danh Thường (Đi học đầy đủ):</strong><br>
+            <span style="font-size: 0.9rem; color: #475569;">Dành cho học viên tham gia học bình thường.</span><br>
+            Bạn chỉ việc lướt tới thẻ của học viên đó và Nhấn <span style="background: #ef4444; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.8rem; font-weight:bold;">BẤM CHỐT ĐIỂM DANH</span>. Hệ thống sẽ tự động cập nhật ngày học hôm nay lên Database, ghi nhận đánh dấu có mặt, và <b>tự động trừ 1 buổi</b> vào "Thẻ Còn Lại". Bạn không cần tự gõ bất kỳ phím nào!
         </div>
         
-        <div style="margin-bottom: 15px; background: #f8fafc; padding: 12px; border-radius: 8px; border-left: 4px solid #f59e0b;">
-            <strong style="color: #1e293b;">❌ 2. Báo Vắng Mặt:</strong> 
-            Tích vào ô <input type="checkbox" checked onclick="return false;"> <strong>Vắng?</strong> trước khi ấn Chốt Điểm Danh. Hệ thống sẽ KHÔNG trừ thẻ học phí mà tự động tăng "Số Ngày Vắng".
+        <div style="margin-bottom: 15px; background: #f8fafc; padding: 15px; border-radius: 8px; border-left: 4px solid #f59e0b;">
+            <strong style="color: #1e293b; font-size: 1.05rem;">❌ 2. Báo Vắng Mặt:</strong><br>
+            <span style="font-size: 0.9rem; color: #475569;">Dành cho các học viên xin nghỉ phép hoặc không đến lớp.</span><br>
+            Kế bên tên học viên có một ô vuông nhỏ. Hãy Tích vào ô <input type="checkbox" checked onclick="return false;"> <strong>Vắng?</strong> trước khi bạn ấn Nút Chốt Điểm Danh màu đỏ. <br>
+            Khi được báo vắng, Hệ thống sẽ tự hiểu và <b>KHÔNG trừ Thẻ Còn Lại</b> của học viên, đồng thời <b>cộng dồn 1 ngày</b> vào "Số Ngày Vắng" để trợ lý trung tâm dễ bề theo dõi khen chê.
         </div>
 
-        <div style="margin-bottom: 15px; background: #f8fafc; padding: 12px; border-radius: 8px; border-left: 4px solid #10b981;">
-            <strong style="color: #1e293b;">💳 3. Nạp / Gia Hạn Thẻ:</strong> 
-            Khi học sinh sắp hết thẻ (nháy chữ đỏ), bấm <button style="background: #e2e8f0; border: none; padding: 3px 8px; border-radius: 6px; font-size: 0.8rem; color: #475569; font-weight:bold;">🔄 Gia Hạn</button> để bán thêm gói 10, 20 hoặc Trọn khóa. Doanh thu nhảy lập tức vào Báo Cáo.
+        <div style="margin-bottom: 15px; background: #f8fafc; padding: 15px; border-radius: 8px; border-left: 4px solid #10b981;">
+            <strong style="color: #1e293b; font-size: 1.05rem;">💳 3. Nạp Tiền & Gia Hạn Thẻ Giờ Học:</strong><br>
+            <span style="font-size: 0.9rem; color: #475569;">Gia hạn tự động chuyển hóa vào Doanh Thu.</span><br>
+            Khi "Thẻ Còn Lại" sắp hết (chỉ còn dưới 3 tuổi), hệ thống sẽ cảnh báo bằng chữ Báo Đỏ. <br>
+            Sau khi phụ huynh đóng học phí mới, hãy bấm nút <button style="background: #e2e8f0; border: none; padding: 3px 8px; border-radius: 6px; font-size: 0.8rem; color: #475569; font-weight:bold;">🔄 Gia Hạn</button> trên thẻ của bé. Chọn gói nạp (10 buổi, 20 buổi...). Ngay khi nạp thành công, <b>số tiền Doanh thu của gói cước sẽ lập tức nhảy thẳng vào Bảng Báo Cáo Tài Chính Tháng</b> tự động!
         </div>
 
-        <div style="margin-bottom: 15px; background: #f8fafc; padding: 12px; border-radius: 8px; border-left: 4px solid #0f172a;">
-            <strong style="color: #1e293b;">📊 4. Tài Chính Zero-Latency:</strong> 
-            Mở khóa bằng nút <button style="background: transparent; border: 1px solid #cbd5e1; padding: 3px 8px; border-radius: 6px; font-size: 0.8rem; color: #0f172a; font-weight:bold;">🔒 Quản Trị Viên</button>. Xem lợi nhuận thực thời gian ngay tức thì của toàn bộ lịch sử!
+        <div style="margin-bottom: 15px; background: #f8fafc; padding: 15px; border-radius: 8px; border-left: 4px solid #0f172a;">
+            <strong style="color: #1e293b; font-size: 1.05rem;">📊 4. Tài Chính Time-Machine (Có xác thực):</strong><br>
+             <span style="font-size: 0.9rem; color: #475569;">Kiểm toán và theo dõi thu chi hàng tháng ngay lập tức.</span><br>
+            Module này chứa doanh thu Mật nên <b>mặc định bị ẩn</b>. Để mở, hãy bấm vào nút <button style="background: transparent; border: 1px solid #cbd5e1; padding: 3px 8px; border-radius: 6px; font-size: 0.8rem; color: #0f172a; font-weight:bold;">🔒 Quản Trị Viên</button> ở góc trên cùng bên phải màn hình và nhập Pass (mật khẩu gốc nằm ở file <i>config.js</i>). Tại bảng Tài Chính, cỗ máy thuật toán sẽ tính toán toàn bộ Lợi nhuận và Hiệu suất hàng tháng mà KHÔNG CÓ BẤT CỨ ĐỘ TRỄ HAY GIẬT LAG NÀO.
+        </div>
+
+        <div style="margin-bottom: 15px; background: #f8fafc; padding: 15px; border-radius: 8px; border-left: 4px solid #8b5cf6;">
+            <strong style="color: #1e293b; font-size: 1.05rem;">📝 5. Khai báo Học Viên & Sửa Lỗi Lịch Sử:</strong><br>
+            - Để tạo hồ sơ một học sinh mới đóng tiền, sử dụng nút <span style="background: var(--primary); color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.8rem;">+ Khai Báo Học Viên Mới</span>.<br>
+            - Nếu bạn vô tình bấm Điểm Danh Nhầm, hãy ấn Nút <span style="font-size: 0.85rem; font-weight:bold;">⏳ Xem Lịch Sử Lớp</span> và dùng điện thoại/máy tính truy cập vào Google Sheets gốc để xóa dòng gõ nhầm đó đi. Xong!
         </div>
       </div>
     </div>
@@ -257,6 +266,9 @@
     </div>
   </div>
 
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
   <script src="js/config.js"></script>
   <script src="js/app.js"></script>
 </body>

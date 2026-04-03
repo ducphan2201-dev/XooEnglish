@@ -74,73 +74,56 @@ const demoData = [
 function showLoader(msg = "Đang đồng bộ chớp nhoáng...") { document.getElementById("loader").style.display = "block"; const txtEl = document.querySelector("#loader .loader-wrapper div:nth-child(2)"); if(txtEl) txtEl.innerText = msg; }
 function hideLoader() { document.getElementById("loader").style.display = "none"; }
 
-async function loadData(forceLoader = false) {
-    const url = (typeof CONFIG !== 'undefined' && CONFIG.API_URL ? CONFIG.API_URL : "").trim();
-    const loader = document.getElementById("loader");
-    const container = document.getElementById("classContainer");
+function prepareGlobalData() {
+    if (!window.fbData || !window.fbData.Main) return [];
+    const mainData = window.fbData.Main;
+    if (mainData.length <= 1) return [];
     
-    if(!url) {
-        loader.style.display = "block";
-        container.innerHTML = "";
-        setTimeout(() => {
-            globalData = demoData;
-            renderClasses(globalData, true);
-            loader.style.display = "none";
-        }, 600);
+    const headers = mainData[0].map(h => String(h).trim());
+    const validRows = [];
+    
+    for (let i = 1; i < mainData.length; i++) {
+        if (!mainData[i]) continue;
+        let obj = {};
+        headers.forEach((h, idx) => {
+             obj[h] = mainData[i][idx] !== undefined ? mainData[i][idx] : "";
+        });
+        validRows.push(obj);
+    }
+    return validRows;
+}
+
+function loadData(forceLoader = false) {
+    if (!forceLoader) showLoader("Đang đồng bộ chớp nhoáng...");
+
+    if (typeof db === 'undefined') {
+        alert("Lỗi: Không tìm thấy Firebase. Hãy tải trang lại.");
         return;
     }
 
-    // 1. Phục hồi dữ liệu tức thì từ Bộ nhớ đệm (Cache)
-    const cachedString = localStorage.getItem('xoo_cache_data');
-    if (cachedString && !forceLoader) {
-        try {
-            globalData = JSON.parse(cachedString);
-            if (globalData && globalData.length > 0) {
-               renderClasses(globalData, false);
-            }
-        } catch(e) { console.error(e); }
-    } else if (forceLoader || !cachedString) {
-        loader.style.display = "block";
-        if (!cachedString) container.innerHTML = "";
-    }
+    db.ref('/').on('value', snapshot => {
+        const val = snapshot.val();
+        if (!val) {
+            globalData = [];
+            renderClasses([], false);
+            hideLoader();
+            return;
+        }
 
-    // 2. Tải ngầm luồng phiên bản mới nhất từ Cloud
-    try {
-        const response = await fetch(url + "?t=" + new Date().getTime()); 
-        const result = await response.json();
-        
-        if(result.status === 'success') {
-            const newString = JSON.stringify(result.data);
-            if(result.data.length === 0) {
-               if(!cachedString || cachedString !== "[]") {
-                   container.innerHTML = "<p style='color: #64748b; text-align: center; width: 100%; grid-column: 1/-1'>Chưa có học viên nào. Hãy bấm Khai báo Học Viên Mới!</p>";
-               }
-               localStorage.setItem('xoo_cache_data', "[]");
-               globalData = [];
-            } else {
-               // Render lại mượt mà NẾU như CSDL trên mây có thay đổi so với Cache
-               if (newString !== cachedString) {
-                   globalData = result.data;
-                   localStorage.setItem('xoo_cache_data', newString);
-                   renderClasses(globalData, false);
-               }
-            }
-        } else {
-            console.error("Lỗi GSheet:", result.message);
-            if (!cachedString) {
-                alert("Lỗi GSheet: " + result.message);
-                renderClasses(demoData, true); 
-            }
+        window.fbData = val;
+        globalData = prepareGlobalData();
+        renderClasses(globalData, false);
+
+        if (document.getElementById("financeModal").style.display === "flex") {
+            const m = document.getElementById("finMonth").value;
+            loadFinanceData(m);
         }
-    } catch (err) {
-        console.error("Lỗi Mạng:", err);
-        if(!cachedString) {
-            alert("Chưa kết nối CSDL thành công. Đang xem Dữ Liệu Demo Ảo.");
-            renderClasses(demoData, true);
-        }
-    } finally {
-        if(loader) loader.style.display = "none";
-    }
+        hideLoader();
+    }, error => {
+        console.error("Firebase Error: ", error);
+        alert("Mất kết nối với cơ sở dữ liệu!");
+        hideLoader();
+    });
 }
 
 function renderClasses(data, isDemo = false) {
@@ -231,17 +214,10 @@ function renderClasses(data, isDemo = false) {
 }
 
 async function startSession(className, isDemo) {
-    if(isDemo) {
-        alert("Demo Mode: Nút ĐIỂM DANH xử lý hoàn hảo! (Nhưng dữ liệu ảo sẽ không bị trừ trên Gsheet gốc).");
-        return;
-    }
-
-    const url = (typeof CONFIG !== 'undefined' && CONFIG.API_URL ? CONFIG.API_URL : "").trim();
-    if(!url) return;
+    if (isDemo) return alert("Demo Mode!");
 
     const dateInput = document.getElementById("date_" + className);
     const selectedDate = dateInput ? dateInput.value : new Date().toISOString().split('T')[0];
-    
     const parts = selectedDate.split('-');
     const displayDate = parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : selectedDate;
 
@@ -252,37 +228,66 @@ async function startSession(className, isDemo) {
         ? `Xác nhận ĐIỂM DANH Lớp [${className}] ngày ${displayDate}?\n\nDanh sách BẢO LƯU THẺ (${absentStudents.length} bạn giữ nguyên):\n👉 ${absentStudents.join(', ')}\n\n(Tất cả bạn CÓ MẶT còn lại TỰ ĐỘNG BỊ TRỪ 1 BUỔI!`
         : `Xác nhận ĐIỂM DANH Lớp [${className}] ngày ${displayDate}?\n\nTẤT CẢ HỌC VIÊN ĐỀU CÓ MẶT! 🥳\n(Hệ thống tự động trừ 1 buổi vào thẻ của Toàn lớp)`;
 
-    if(!confirm(confirmMsg)) return;
+    let histArr = window.fbData?.Lich_Su_Diem_Danh || [];
+    for (let i = 1; i < histArr.length; i++) {
+        if (!histArr[i]) continue;
+        if (String(histArr[i][0]).trim() === selectedDate && String(histArr[i][1]).trim() === className) {
+             alert(`Lớp ${className} đã được chốt trong ngày ${displayDate}. Nếu có học viên đến muộn, hãy nhấn nút "➖ Trừ Lẻ".`);
+             return;
+        }
+    }
 
+    if (!confirm(confirmMsg)) return;
+    showLoader("Đang ghi Firebase...");
 
-    const loader = document.getElementById("loader");
-    loader.style.display = "block";
+    let mainArr = window.fbData.Main || [];
+    let headers = mainArr[0] ? mainArr[0].map(h => String(h).trim()) : [];
+    let colClass = headers.indexOf("Ten_Lop");
+    let colName = headers.indexOf("Ten_Hoc_Vien");
+    let colCardType = headers.indexOf("Loai_The");
+    let colAbsences = headers.indexOf("So_Ngay_Vang");
+    let colRemaining = headers.indexOf("The_Con_Lai");
 
-    const payload = {
-        action: "start_session",
-        className: className,
-        absences: absentStudents,
-        date: selectedDate
-    };
+    let presentList = [];
+    let absentListFinal = [];
+
+    for (let i = 1; i < mainArr.length; i++) {
+        if (!mainArr[i]) continue;
+        if (mainArr[i][colClass] === className) {
+            let sName = mainArr[i][colName];
+            if (absentStudents.includes(sName)) {
+                absentListFinal.push(sName);
+                mainArr[i][colAbsences] = (parseInt(mainArr[i][colAbsences]) || 0) + 1;
+            } else {
+                presentList.push(sName);
+                let oldR = mainArr[i][colRemaining];
+                if (oldR === "" || oldR === undefined) oldR = mainArr[i][colCardType];
+                if (!isNaN(oldR) && String(oldR).trim() !== "") {
+                    let r = parseInt(oldR);
+                    if (r > 0) mainArr[i][colRemaining] = r - 1;
+                }
+            }
+        }
+    }
+
+    if (histArr.length === 0) histArr.push(["Ngay_Diem_Danh", "Ten_Lop", "Hoc_Vien_Co_Mat", "Hoc_Vien_Vang"]);
+    histArr.push([
+        selectedDate, 
+        className, 
+        presentList.length > 0 ? presentList.join(", ") : "Không có ai", 
+        absentListFinal.length > 0 ? absentListFinal.join(", ") : "Không có ai"
+    ]);
 
     try {
-        const response = await fetch(url, {
-            method: "POST",
-            body: JSON.stringify(payload),
-            headers: { "Content-Type": "text/plain;charset=utf-8" }
+        await db.ref().update({
+             '/Main': mainArr,
+             '/Lich_Su_Diem_Danh': histArr
         });
-        const result = await response.json();
-        
-        if(result.status === 'success') {
-            alert("✅ THÀNH CÔNG: " + result.message);
-            applyFastUpdate(result);
-        } else {
-            alert("Gặp lỗi Cập nhật Excel: " + result.message);
-        }
-    } catch (err) {
-        alert("Lỗi kết nối từ phía Máy của bạn tới server Google: " + err.message);
+        alert(`✅ Đã chốt thành công ngày ${displayDate}`);
+    } catch(err) {
+        alert("Lỗi lưu lên Firebase: " + err.message);
     } finally {
-        loader.style.display = "none";
+        hideLoader();
     }
 }
 
@@ -314,9 +319,6 @@ function closeRenewModal() {
 
 async function submitRenewForm(e) {
     e.preventDefault();
-    const url = (typeof CONFIG !== 'undefined' && CONFIG.API_URL ? CONFIG.API_URL : "").trim();
-    if(!url) return alert("Demo Mode: Tính năng Gia hạn cần kết nối với Google Sheets thật.");
-
     const className = document.getElementById("renewClassName").value;
     const studentName = document.getElementById("renewStudentName").innerText;
     const cardVal = document.getElementById("inpRenewCard").value;
@@ -324,99 +326,83 @@ async function submitRenewForm(e) {
     const btn = document.getElementById("btnSubmitRenew");
     btn.innerText = "Đang Đồng Bộ...";
     btn.disabled = true;
-    
-    const loader = document.getElementById("loader");
-    if(loader) loader.style.display = "block";
 
-    try {
-        const response = await fetch(url, {
-            method: "POST",
-            body: JSON.stringify({ 
-                action: "renew_card", 
-                className: className, 
-                studentName: studentName, 
-                addAmount: cardVal, 
-                newCardType: cardVal 
-            }),
-            headers: { "Content-Type": "text/plain;charset=utf-8" }
-        });
-        const result = await response.json();
-        if(result.status === 'success') {
-            alert("✅ " + result.message);
-            closeRenewModal();
-            applyFastUpdate(result);
-        } else {
-            alert("Lỗi GSheet: " + result.message);
+    let mainArr = window.fbData?.Main || [];
+    let headers = mainArr[0] ? mainArr[0].map(h => String(h).trim()) : [];
+    let colClass = headers.indexOf("Ten_Lop");
+    let colName = headers.indexOf("Ten_Hoc_Vien");
+    let colCardType = headers.indexOf("Loai_The");
+    let colRemaining = headers.indexOf("The_Con_Lai");
+
+    let renewed = false;
+    for (let i = 1; i < mainArr.length; i++) {
+        if (!mainArr[i]) continue;
+        if (mainArr[i][colClass] === className && mainArr[i][colName] === studentName) {
+            let oldR = mainArr[i][colRemaining];
+            if (oldR === "" || oldR === undefined) oldR = mainArr[i][colCardType];
+            
+            if (cardVal === "Theo khóa") {
+                mainArr[i][colRemaining] = "Theo khóa";
+                mainArr[i][colCardType] = "Theo khóa";
+            } else {
+                let currentLeft = (!isNaN(oldR) && String(oldR).trim() !== "") ? parseInt(oldR) : 0;
+                let toAdd = parseInt(cardVal) || 0;
+                mainArr[i][colRemaining] = currentLeft + toAdd;
+                mainArr[i][colCardType] = cardVal;
+            }
+            renewed = true;
+            break;
         }
-    } catch(err) {
-        alert("Lỗi Mạng: " + err.message);
-    } finally {
-        if(loader) loader.style.display = "none";
-        btn.innerText = "💳 Nạp Thẻ Nhập Hệ Thống";
-        btn.disabled = false;
     }
+
+    if (renewed) {
+         try {
+             await db.ref('/Main').set(mainArr);
+             alert("✅ Nạp thành công cho " + studentName);
+             closeRenewModal();
+         } catch(err) {
+             alert("Lỗi: " + err.message);
+         }
+    }
+    btn.innerText = "💳 Nạp Thẻ Gian Hạn";
+    btn.disabled = false;
 }
 
 async function submitForm(e) {
     e.preventDefault();
-    const url = (typeof CONFIG !== 'undefined' && CONFIG.API_URL ? CONFIG.API_URL : "").trim();
-    
     const className = document.getElementById("inpClass").value.trim();
     const name = document.getElementById("inpName").value.trim();
     const date = document.getElementById("inpDate").value;
     const card = document.getElementById("inpCard").value;
     
-    // Nếu chưa có CSDL thật -> Ghi vào mảng Ảo (Demo)
-    if(!url) {
-        demoData.push({
-            Ten_Lop: className, 
-            Ten_Hoc_Vien: name, 
-            Ngay_Bat_Dau: date,
-            Loai_The: card, 
-            So_Ngay_Vang: "0", 
-            The_Con_Lai: card
-        });
-        alert("[Bản Demo] Đã tạo thành công Học Viên Mới!");
-        closeModal();
-        document.getElementById("addForm").reset();
-        loadData(true);
-        return;
-    }
-
     const btn = document.getElementById("btnSubmitForm");
-    btn.innerText = "Đang Tự Động Ghi Vào Excel...";
+    btn.innerText = "Đang Ghi...";
     btn.disabled = true;
     
-    const loader = document.getElementById("loader");
-    if(loader) loader.style.display = "block";
+    let mainArr = window.fbData?.Main || [];
+    if(mainArr.length === 0) {
+        mainArr.push(["Ten_Lop", "Ten_Hoc_Vien", "Ngay_Bat_Dau", "Loai_The", "So_Ngay_Vang", "The_Con_Lai"]);
+    }
     
-    const payload = {
-        action: "add_student",
-        className: className,
-        studentName: name,
-        cardType: card,
-        startDate: date
-    };
-    
+    let headers = mainArr[0].map(h => String(h).trim());
+    let newRow = new Array(headers.length).fill("");
+    if(headers.indexOf("Ten_Lop") !== -1) newRow[headers.indexOf("Ten_Lop")] = className;
+    if(headers.indexOf("Ten_Hoc_Vien") !== -1) newRow[headers.indexOf("Ten_Hoc_Vien")] = name;
+    if(headers.indexOf("Ngay_Bat_Dau") !== -1) newRow[headers.indexOf("Ngay_Bat_Dau")] = date;
+    if(headers.indexOf("Loai_The") !== -1) newRow[headers.indexOf("Loai_The")] = card;
+    if(headers.indexOf("So_Ngay_Vang") !== -1) newRow[headers.indexOf("So_Ngay_Vang")] = 0;
+    if(headers.indexOf("The_Con_Lai") !== -1) newRow[headers.indexOf("The_Con_Lai")] = card;
+
+    mainArr.push(newRow);
+
     try {
-        const response = await fetch(url, {
-            method: "POST",
-            body: JSON.stringify(payload),
-            headers: { "Content-Type": "text/plain;charset=utf-8" }
-        });
-        const result = await response.json();
-        if(result.status === 'success') {
-            alert("✅ " + result.message);
-            closeModal();
-            document.getElementById("addForm").reset();
-            applyFastUpdate(result);
-        } else {
-            alert("Lỗi Lưu từ GSheet: " + result.message);
-        }
+        await db.ref('/Main').set(mainArr);
+        alert("✅ Khai báo thành công!");
+        closeModal();
+        document.getElementById("addForm").reset();
     } catch(err) {
-        alert("Lỗi Đường truyền: " + err.message);
+        alert("Lỗi Lưu: " + err.message);
     } finally {
-        if(loader) loader.style.display = "none";
         btn.innerText = "Hoàn Tất Khai Báo";
         btn.disabled = false;
     }
@@ -428,116 +414,126 @@ function closeHistoryModal() {
     document.getElementById("historyModal").style.display = "none";
 }
 
-async function openHistoryModal(className) {
+function openHistoryModal(className) {
     document.getElementById("historyClassName").innerText = className;
     const tbody = document.getElementById("historyBody");
     tbody.innerHTML = "";
-    document.getElementById("historyLoading").style.display = "block";
+    document.getElementById("historyLoading").style.display = "none";
     document.getElementById("historyModal").style.display = "flex";
 
-    const url = (typeof CONFIG !== 'undefined' && CONFIG.API_URL ? CONFIG.API_URL : "").trim();
-    if(!url) {
-        document.getElementById("historyLoading").innerText = "Chế độ Demo: Không có máy chủ cung cấp lịch sử.";
-        return;
+    const histArr = window.fbData?.Lich_Su_Diem_Danh || [];
+    if (histArr.length <= 1) {
+         tbody.innerHTML = `<tr><td colspan="3" style="text-align:center; padding: 25px; color: #64748b; font-style:italic;">Lớp này chưa có buổi Lịch sử điểm danh nào!</td></tr>`;
+         return;
     }
 
-    try {
-        const response = await fetch(url, {
-            method: "POST",
-            body: JSON.stringify({ action: "get_history", className: className }),
-            headers: { "Content-Type": "text/plain;charset=utf-8" }
-        });
-        const result = await response.json();
-        document.getElementById("historyLoading").style.display = "none";
-        
-        if (result.status === 'success') {
-            const data = result.data || [];
-            if(data.length === 0) {
-                 tbody.innerHTML = `<tr><td colspan="3" style="text-align:center; padding: 25px; color: #64748b; font-style:italic;">Lớp này chưa có buổi Lịch sử điểm danh nào!</td></tr>`;
-                 return;
-            }
-            data.forEach(item => {
-                const tr = document.createElement("tr");
-                tr.style.borderBottom = "1px solid var(--border)";
-                
-                // Đồng bộ hiển thị chữ bất chấp dữ liệu cũ trong Excel
-                let displayAbsent = item.absent;
-                if (displayAbsent === "Đi học đủ" || displayAbsent === "Không có") displayAbsent = "Không có ai";
+    let headers = histArr[0].map(h => String(h).trim());
+    let colDate = headers.indexOf("Ngay_Diem_Danh");
+    let colClass = headers.indexOf("Ten_Lop");
+    let colPres = headers.indexOf("Hoc_Vien_Co_Mat");
+    let colAbs = headers.indexOf("Hoc_Vien_Vang");
 
-                // Tránh tình trạng ngáo màu
-                const presentColor = item.present === "Không có ai" ? "#64748b" : "#059669";
-                const absentColor = displayAbsent === "Không có ai" ? "#059669" : "#dc2626";
-                const absentWeight = displayAbsent === "Không có ai" ? "600" : "700";
+    let foundAny = false;
+    for (let i = histArr.length - 1; i >= 1; i--) {
+        if (!histArr[i]) continue;
+        if (histArr[i][colClass] === className) {
+             foundAny = true;
+             const tr = document.createElement("tr");
+             tr.style.borderBottom = "1px solid var(--border)";
+             
+             let dt = histArr[i][colDate] || "";
+             let pres = histArr[i][colPres] || "";
+             let abs = histArr[i][colAbs] || "";
 
-                tr.innerHTML = `
-                   <td style="padding: 12px 10px; font-weight: 700;">${item.date}</td>
-                   <td style="padding: 12px 10px; color: ${presentColor}; font-weight: 600;">${item.present}</td>
-                   <td style="padding: 12px 10px; color: ${absentColor}; font-weight: ${absentWeight}; margin-left:1px;">${displayAbsent}</td>
-                `;
-                tbody.appendChild(tr);
-            });
-        } else {
-            document.getElementById("historyLoading").style.display = "block";
-            document.getElementById("historyLoading").innerText = "Lỗi: " + result.message;
+             if (abs === "Đi học đủ" || abs === "Không có") abs = "Không có ai";
+             
+             const presentColor = pres === "Không có ai" ? "#64748b" : "#059669";
+             const absentColor = abs === "Không có ai" ? "#059669" : "#dc2626";
+             const absentWeight = abs === "Không có ai" ? "600" : "700";
+
+             tr.innerHTML = `
+                <td style="padding: 12px 10px; font-weight: 700;">${dt}</td>
+                <td style="padding: 12px 10px; color: ${presentColor}; font-weight: 600;">${pres}</td>
+                <td style="padding: 12px 10px; color: ${absentColor}; font-weight: ${absentWeight}; margin-left:1px;">${abs}</td>
+             `;
+             tbody.appendChild(tr);
         }
-    } catch(err) {
-        document.getElementById("historyLoading").style.display = "block";
-        document.getElementById("historyLoading").innerHTML = `<span style="color:red">Lỗi: ${err.message}</span>`;
-        console.error("GET_HISTORY_ERROR:", err);
     }
+    if(!foundAny) tbody.innerHTML = `<tr><td colspan="3" style="text-align:center; padding: 25px; color: #64748b; font-style:italic;">Chưa có lịch sử khớp.</td></tr>`;
 }
 
 window.deductIndividual = async function(studentName, className) {
-    if (!confirm(`Bạn có chắc chắn muốn xử lý chức năng [THÊM 1 CA / XOÁ VẮNG] cho học viên ${studentName} trong ngày hôm nay không?\n\n(Hệ thống sẽ tự nhận diện: Nếu lỡ đánh vắng sẽ Trừ Thẻ + Xoá Vắng. Nếu có mặt sẵn sẽ Trừ Thẻ + Tăng 1 Ca)`)) return;
+    if (!confirm(`Xử lý [THÊM 1 CA / XOÁ VẮNG] cho ${studentName} ngày hôm nay?`)) return;
 
-    const url = (typeof CONFIG !== 'undefined' && CONFIG.API_URL ? CONFIG.API_URL : "").trim();
+    const dateInp = document.getElementById(`date_${className}`);
+    let selectedDate = dateInp ? dateInp.value : new Date().toISOString().split('T')[0];
 
-    const dateInp = document.getElementById(`date-${className.replace(/\\s+/g, '')}`);
-    let selectedDate = dateInp ? dateInp.value : "";
-    if(!selectedDate) {
-        const today = new Date();
-        selectedDate = today.getDate() + '/' + (today.getMonth() + 1) + '/' + today.getFullYear();
-    } else {
-        const parts = selectedDate.split("-");
-        selectedDate = parseInt(parts[2]) + "/" + parseInt(parts[1]) + "/" + parts[0];
+    let histArr = window.fbData?.Lich_Su_Diem_Danh || [];
+    let mainArr = window.fbData?.Main || [];
+    
+    let hasLateArrivalFix = false;
+    let histHeaders = histArr[0] ? histArr[0].map(h => String(h).trim()) : [];
+    let hDate = histHeaders.indexOf("Ngay_Diem_Danh");
+    let hClass = histHeaders.indexOf("Ten_Lop");
+    let hPres = histHeaders.indexOf("Hoc_Vien_Co_Mat");
+    let hAbs = histHeaders.indexOf("Hoc_Vien_Vang");
+
+    for (let j = 1; j < histArr.length; j++) {
+         if (!histArr[j]) continue;
+         if (histArr[j][hDate] === selectedDate && histArr[j][hClass] === className) {
+             let presStr = String(histArr[j][hPres]);
+             let absStr = String(histArr[j][hAbs]);
+             
+             if (absStr.includes(studentName)) {
+                 let abList = absStr.split(",").map(x => x.trim()).filter(x => x !== studentName);
+                 histArr[j][hAbs] = abList.length > 0 ? abList.join(", ") : "Không có ai";
+                 
+                 let prList = presStr === "Không có ai" ? [] : presStr.split(",").map(x => x.trim());
+                 if (!prList.includes(studentName)) prList.push(studentName);
+                 histArr[j][hPres] = prList.join(", ");
+                 hasLateArrivalFix = true;
+             }
+             break;
+         }
     }
-    if(!url) {
-        alert("Tính năng Cấn Trừ Lẻ chỉ hoạt động khi có kết nối API thật!");
-        return;
+
+    let headers = mainArr[0] ? mainArr[0].map(h => String(h).trim()) : [];
+    let colClass = headers.indexOf("Ten_Lop");
+    let colName = headers.indexOf("Ten_Hoc_Vien");
+    let colCardType = headers.indexOf("Loai_The");
+    let colRemaining = headers.indexOf("The_Con_Lai");
+    let colAbsences = headers.indexOf("So_Ngay_Vang");
+
+    let deducted = false;
+    for (let i = 1; i < mainArr.length; i++) {
+        if (!mainArr[i]) continue;
+        if (mainArr[i][colClass] === className && mainArr[i][colName] === studentName) {
+             let oldR = mainArr[i][colRemaining];
+             if (oldR === "" || oldR === undefined) oldR = mainArr[i][colCardType];
+             if (!isNaN(oldR) && String(oldR).trim() !== "") {
+                 let rem = parseInt(oldR);
+                 if (rem > 0) { mainArr[i][colRemaining] = rem - 1; deducted = true; }
+             }
+             if (hasLateArrivalFix) {
+                 let ab = parseInt(mainArr[i][colAbsences]) || 0;
+                 if (ab > 0) mainArr[i][colAbsences] = ab - 1;
+             }
+             break;
+        }
     }
 
-    const loader = document.getElementById("loader");
-    loader.style.display = "block";
+    if (!deducted) return alert("Học viên đã hết thẻ, không thể trừ.");
+
+    if (!hasLateArrivalFix) {
+         if (histArr.length === 0) histArr.push(["Ngay_Diem_Danh", "Ten_Lop", "Hoc_Vien_Co_Mat", "Hoc_Vien_Vang"]);
+         histArr.push([selectedDate, className, studentName + " (Học Gộp)", "Không có ai"]);
+    }
 
     try {
-        const response = await fetch(url, {
-            method: "POST",
-            body: JSON.stringify({ action: "deduct_individual", className: className, studentName: studentName, date: selectedDate }),
-            headers: {"Content-Type": "text/plain;charset=utf-8"}
-        });
-        const result = await response.json();
-        
-        if(result.status === 'success') {
-            alert("✅ Thành công: " + result.message);
-            applyFastUpdate(result);
-        } else {
-            alert("❌ Lỗi Server: " + result.message);
-        }
+        await db.ref().update({'/Main': mainArr, '/Lich_Su_Diem_Danh': histArr});
+        alert(hasLateArrivalFix ? `Đã xoá án vắng và trừ thẻ cho ${studentName}.` : `Đã trừ thẻ bù ngày cho ${studentName}.`);
     } catch(err) {
-        alert("❌ Lỗi Mạng: " + err.message);
-        console.error("DEDUCT_INDIVIDUAL_ERROR:", err);
-    } finally {
-        loader.style.display = "none";
-    }
-}
-
-function applyFastUpdate(result) {
-    if (result.updatedData) {
-        globalData = result.updatedData;
-        localStorage.setItem('xoo_cache_data', JSON.stringify(globalData));
-        renderClasses(globalData, false);
-    } else {
-        loadData(false);
+        alert("Lỗi DB: " + err.message);
     }
 }
 
@@ -786,46 +782,22 @@ function calculateFinanceDashboard(monthParam, rawData) {
     };
 }
 
-async function loadFinanceData(monthParam) {
-    const url = (typeof CONFIG !== 'undefined' && CONFIG.API_URL ? CONFIG.API_URL : "").trim();
-    if(!url) {
-        document.getElementById("financeLoading").innerText = "Chế độ Demo: Chưa kết nối máy chủ để xem tài chính.";
-        return;
-    }
+function loadFinanceData(monthParam) {
+    document.getElementById("financeLoading").style.display = "none";
+    document.getElementById("financeDashboardContent").style.display = "block";
+    
+    if(!window.fbData) return;
 
-    if (window.localRawFinance) {
-        document.getElementById("financeLoading").style.display = "none";
-        document.getElementById("financeDashboardContent").style.display = "block";
-        const d = calculateFinanceDashboard(monthParam, window.localRawFinance);
-        renderFinanceDashboard(d);
-        window.lastFinanceData = d;
-        return; // Zero network latency!
-    }
+    const rawData = {
+        config: window.fbData.Cau_Hinh_Tai_Chinh || [["Ten_Lop", "Gia_Tien_Buoi"]],
+        cost: window.fbData.Lich_Su_Thu_Chi_Thang || [["Thang_Nam", "Tong_Tien_Thu", "Tong_Chi_Phi"]],
+        history: window.fbData.Lich_Su_Diem_Danh || [["Ngay", "Lop", "H", "V"]],
+        main: window.fbData.Main || []
+    };
 
-    document.getElementById("financeLoading").style.display = "block";
-    document.getElementById("financeDashboardContent").style.display = "none";
-
-    try {
-        const response = await fetch(url, {
-            method: "POST",
-            body: JSON.stringify({ action: "get_finance_dashboard", month: monthParam }),
-            headers: { "Content-Type": "text/plain;charset=utf-8" }
-        });
-        const result = await response.json();
-        
-        if (result.status === 'success') {
-            document.getElementById("financeLoading").style.display = "none";
-            document.getElementById("financeDashboardContent").style.display = "block";
-            window.localRawFinance = result.data;
-            const d = calculateFinanceDashboard(monthParam, window.localRawFinance);
-            renderFinanceDashboard(d);
-            window.lastFinanceData = d;
-        } else {
-            document.getElementById("financeLoading").innerText = "Lỗi: " + result.message;
-        }
-    } catch(err) {
-        document.getElementById("financeLoading").innerHTML = `<span style="color:red">Lỗi mạng: ${err.message}</span>`;
-    }
+    const d = calculateFinanceDashboard(monthParam, rawData);
+    window.lastFinanceData = d;
+    renderFinanceDashboard(d);
 }
 
 function formatVND(num) {
@@ -893,52 +865,61 @@ function renderPriceConfigInputs() {
 
 async function submitFinanceConfig(e) {
     e.preventDefault();
-    const url = (typeof CONFIG !== 'undefined' && CONFIG.API_URL ? CONFIG.API_URL : "").trim();
-    if(!url) return alert("Demo Mode: Tính năng lưu tài chính cần kết nối máy chủ thật.");
-
-    const monthSelected = document.getElementById("finMonth").value; // yyyy-MM
-    let gatheredEl = document.getElementById("finGathered");
+    const monthSelected = document.getElementById("finMonth").value; 
     let costEl = document.getElementById("finCost");
-    
     let cost = costEl ? costEl.value : undefined;
 
-    const classPrices = {};
-    document.querySelectorAll(".class-price-input").forEach(inp => {
-        classPrices[inp.getAttribute("data-class")] = inp.value;
-    });
-
     const btn = document.getElementById("btnSubmitFinance");
-    btn.innerText = "Đang Lưu...";
+    btn.innerText = "Đang Lưu Firebase...";
     btn.disabled = true;
 
-    try {
-        const payload = {
-            action: "update_finance_inputs",
-            month: monthSelected,
-            cost: cost ? parseFloat(cost) : undefined,
-            class_prices: classPrices
-        };
+    let cauHinhData = window.fbData?.Cau_Hinh_Tai_Chinh || [];
+    if(cauHinhData.length === 0) cauHinhData.push(["Ten_Lop", "Gia_Tien_Buoi"]);
+    
+    const classPricesToSave = {};
+    document.querySelectorAll(".class-price-input").forEach(inp => {
+        classPricesToSave[inp.getAttribute("data-class")] = inp.value;
+    });
 
-        const response = await fetch(url, {
-            method: "POST",
-            body: JSON.stringify(payload),
-            headers: { "Content-Type": "text/plain;charset=utf-8" }
-        });
-        const result = await response.json();
-        
-        if (result.status === 'success') {
-            alert("✅ " + result.message);
-            switchFinanceTab('report');
-            loadFinanceData(monthSelected);
-            if (gatheredEl) gatheredEl.value = "";
-            if (costEl) costEl.value = "";
-            let usdEl = document.getElementById("finCostUSD");
-            if (usdEl) usdEl.value = "";
-        } else {
-            alert("Lỗi GSheet: " + result.message);
+    Object.keys(classPricesToSave).forEach(cName => {
+        let price = parseFloat(classPricesToSave[cName]) || 0;
+        let found = false;
+        for(let i=1; i<cauHinhData.length; i++) {
+             if(cauHinhData[i] && String(cauHinhData[i][0]).trim() === cName) {
+                 cauHinhData[i][1] = price;
+                 found = true; break;
+             }
         }
+        if(!found) cauHinhData.push([cName, price]);
+    });
+
+    let thuChiData = window.fbData?.Lich_Su_Thu_Chi_Thang || [];
+    if(thuChiData.length === 0) thuChiData.push(["Thang_Nam", "Tong_Tien_Thu", "Tong_Chi_Phi"]);
+    
+    if(monthSelected && cost !== undefined) {
+         let newChi = parseFloat(cost) || 0;
+         let found = false;
+         for(let i=1; i<thuChiData.length; i++) {
+             if(thuChiData[i] && String(thuChiData[i][0]).trim() === monthSelected) {
+                  thuChiData[i][2] = newChi;
+                  found = true; break;
+             }
+         }
+         if(!found) thuChiData.push([monthSelected, 0, newChi]);
+    }
+
+    try {
+        await db.ref().update({
+            '/Cau_Hinh_Tai_Chinh': cauHinhData,
+            '/Lich_Su_Thu_Chi_Thang': thuChiData
+        });
+        alert("✅ Đã chốt lưu báo cáo tài chính.");
+        switchFinanceTab('report');
+        if (costEl) costEl.value = "";
+        let usdEl = document.getElementById("finCostUSD");
+        if (usdEl) usdEl.value = "";
     } catch(err) {
-        alert("Lỗi Mạng: " + err.message);
+        alert("Lỗi Ghi: " + err.message);
     } finally {
         btn.innerText = "💾 Lưu Cấu Hình Tài Chính";
         btn.disabled = false;

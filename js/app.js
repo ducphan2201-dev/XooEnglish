@@ -229,9 +229,12 @@ async function startSession(className, isDemo) {
         : `Xác nhận ĐIỂM DANH Lớp [${className}] ngày ${displayDate}?\n\nTẤT CẢ HỌC VIÊN ĐỀU CÓ MẶT! 🥳\n(Hệ thống tự động trừ 1 buổi vào thẻ của Toàn lớp)`;
 
     let histArr = window.fbData?.Lich_Su_Diem_Danh || [];
+    let normClass = String(className || "").trim().toLowerCase();
     for (let i = 1; i < histArr.length; i++) {
         if (!histArr[i]) continue;
-        if (String(histArr[i][0]).trim() === selectedDate && String(histArr[i][1]).trim() === className) {
+        let rowDate = String(histArr[i][0] || "").trim();
+        let rowClass = String(histArr[i][1] || "").trim().toLowerCase();
+        if (rowDate === selectedDate && (rowClass === normClass || histArr[i][1] === className)) {
              alert(`Lớp ${className} đã được chốt trong ngày ${displayDate}. Nếu có học viên đến muộn, hãy nhấn nút "➖ Trừ Lẻ".`);
              return;
         }
@@ -429,14 +432,20 @@ function openHistoryModal(className) {
 
     let headers = histArr[0].map(h => String(h).trim());
     let colDate = headers.indexOf("Ngay_Diem_Danh");
+    if (colDate === -1) colDate = 0;
     let colClass = headers.indexOf("Ten_Lop");
+    if (colClass === -1) colClass = 1;
     let colPres = headers.indexOf("Hoc_Vien_Co_Mat");
+    if (colPres === -1) colPres = 2;
     let colAbs = headers.indexOf("Hoc_Vien_Vang");
+    if (colAbs === -1) colAbs = 3;
 
     let foundAny = false;
+    let targetClass = String(className || "").trim().toLowerCase();
     for (let i = histArr.length - 1; i >= 1; i--) {
         if (!histArr[i]) continue;
-        if (histArr[i][colClass] === className) {
+        let rowClass = String(histArr[i][colClass] || "").trim().toLowerCase();
+        if (rowClass === targetClass || histArr[i][colClass] === className) {
              foundAny = true;
              const tr = document.createElement("tr");
              tr.style.borderBottom = "1px solid var(--border)";
@@ -474,13 +483,20 @@ window.deductIndividual = async function(studentName, className) {
     let hasLateArrivalFix = false;
     let histHeaders = histArr[0] ? histArr[0].map(h => String(h).trim()) : [];
     let hDate = histHeaders.indexOf("Ngay_Diem_Danh");
+    if (hDate === -1) hDate = 0;
     let hClass = histHeaders.indexOf("Ten_Lop");
+    if (hClass === -1) hClass = 1;
     let hPres = histHeaders.indexOf("Hoc_Vien_Co_Mat");
+    if (hPres === -1) hPres = 2;
     let hAbs = histHeaders.indexOf("Hoc_Vien_Vang");
+    if (hAbs === -1) hAbs = 3;
 
+    let targetClassNorm = String(className || "").trim().toLowerCase();
     for (let j = 1; j < histArr.length; j++) {
          if (!histArr[j]) continue;
-         if (histArr[j][hDate] === selectedDate && histArr[j][hClass] === className) {
+         let rowD = String(histArr[j][hDate] || "").trim();
+         let rowC = String(histArr[j][hClass] || "").trim().toLowerCase();
+         if (rowD === String(selectedDate).trim() && (rowC === targetClassNorm || histArr[j][hClass] === className)) {
              let presStr = String(histArr[j][hPres]);
              let absStr = String(histArr[j][hAbs]);
              

@@ -12,7 +12,7 @@ function onOpen() {
 }
 
 // ----------------------------------------------------
-// TÍNH NĂNG 2: PHẢN XẠ KHI ADMIN SỬA TAY TRÊN GSHEET (Cập nhật Tức Thời)
+// TÍNH NĂNG 2: PHẢN XẠ KHI ADMIN SỬA TAY TRÊN GSHEET (Cập nhật Tức Thời Toàn Bộ)
 // ----------------------------------------------------
 function onEdit(e) {
   if (!e || !e.range) return;
@@ -23,32 +23,27 @@ function onEdit(e) {
   if (sheetName === "Cau_Hinh_Tai_Chinh" || sheetName === "Lich_Su_Diem_Danh" || sheetName === "Lich_Su_Thu_Chi_Thang") {
       nodeName = sheetName;
   } else {
-      // Xác định nếu đây là sheet học viên (mặc định luôn ở vị trí số 1)
       var firstSheetName = SpreadsheetApp.getActiveSpreadsheet().getSheets()[0].getName();
       if (sheetName === firstSheetName) nodeName = "Main";
   }
   
-  if (nodeName === "") return; // Chặn nếu admin sửa ở sheet nháp không liên quan
+  if (nodeName === "") return; 
   
-  var row = e.range.getRow();
-  
-  // Đọc lại mảng toàn bộ dữ liệu của DÒNG đang sửa
-  var rowData = sheet.getRange(row, 1, 1, sheet.getLastColumn()).getValues()[0];
+  // Đọc toàn bộ bảng thay vì 1 dòng để CHỐNG lệch Index do Xóa/Thêm/Sort
+  var data = sheet.getDataRange().getValues();
   
   var options = {
-    method: "put", // PUT sẽ thay thế toàn bộ dữ liệu của dòng đó ở Firebase
+    method: "put", 
     contentType: "application/json",
-    payload: JSON.stringify(rowData)
+    payload: JSON.stringify(data)
   };
   
-  // Trong Firebase, Array index bắt đầu từ 0 (Tương tự Row 1 trên GSheet = Node 0)
-  var fbIndex = row - 1; 
-  var url = FIREBASE_URL + "/" + nodeName + "/" + fbIndex + ".json";
+  var url = FIREBASE_URL + "/" + nodeName + "/.json";
   
   try {
      UrlFetchApp.fetch(url, options);
   } catch(err) {
-     Logger.log("Lỗi đồng bộ mảng: " + err);
+     Logger.log("Lỗi đồng bộ toàn mảng: " + err);
   }
 }
 

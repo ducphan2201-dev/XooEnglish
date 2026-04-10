@@ -161,6 +161,7 @@ function renderClasses(data, isDemo = false) {
         delayIndex++;
         
         let safeClassName = escapeHtml(className);
+        let safeClassAttr = escapeAttr(className);
         let html = `
             <div class="class-header">
                 📚 ${safeClassName}
@@ -187,7 +188,6 @@ function renderClasses(data, isDemo = false) {
             
             let safeName = escapeHtml(std["Ten_Hoc_Vien"]);
             let safeNameAttr = escapeAttr(std["Ten_Hoc_Vien"]);
-            let safeClassAttr = escapeAttr(className);
             html += `
                 <div class="student-item ${isExpired ? 'expired' : ''}">
                     <div class="student-info">

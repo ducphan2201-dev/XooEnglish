@@ -3,6 +3,26 @@ document.addEventListener("DOMContentLoaded", () => {
     loadData();
 });
 
+// === UTILITY: Chống XSS injection ===
+function escapeHtml(str) {
+    if (str == null) return '';
+    const div = document.createElement('div');
+    div.textContent = String(str);
+    return div.innerHTML;
+}
+function escapeAttr(str) {
+    if (str == null) return '';
+    return String(str).replace(/&/g,'&amp;').replace(/'/g,'&#39;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// === UTILITY: Guard check Firebase DB ===
+function getDbRef(path) {
+    if (typeof db === 'undefined' || typeof firebase === 'undefined') {
+        throw new Error('Firebase chưa sẵn sàng. Hãy tải lại trang.');
+    }
+    return db.ref('/' + (CONFIG.DB_VAULT || '') + (path || ''));
+}
+
 function initTheme() {
     const savedTheme = localStorage.getItem('xooTheme');
     if (savedTheme === 'baby-blue') {
@@ -63,14 +83,6 @@ function applyAdminRules() {
 
 let globalData = [];
 
-// KHAI BÁO DỮ LIỆU DEMO GIẢ LẬP
-const demoData = [
-    { Ten_Lop: "IELTS 6.5 Nâng Cao", Ten_Hoc_Vien: "Nguyễn Văn A", Loai_The: "20", So_Ngay_Vang: "0", The_Con_Lai: "10" },
-    { Ten_Lop: "IELTS 6.5 Nâng Cao", Ten_Hoc_Vien: "Trần Thị B", Loai_The: "20", So_Ngay_Vang: "2", The_Con_Lai: "0" }, 
-    { Ten_Lop: "Giao Tiếp Phản Xạ", Ten_Hoc_Vien: "Phạm D", Loai_The: "10", So_Ngay_Vang: "0", The_Con_Lai: "1" },
-    { Ten_Lop: "Giao Tiếp Phản Xạ", Ten_Hoc_Vien: "Hoàng E", Loai_The: "20", So_Ngay_Vang: "5", The_Con_Lai: "15" },
-];
-
 function showLoader(msg = "Đang đồng bộ chớp nhoáng...") { document.getElementById("loader").style.display = "block"; const txtEl = document.querySelector("#loader .loader-wrapper div:nth-child(2)"); if(txtEl) txtEl.innerText = msg; }
 function hideLoader() { document.getElementById("loader").style.display = "none"; }
 
@@ -93,11 +105,13 @@ function prepareGlobalData() {
     return validRows;
 }
 
-function loadData(forceLoader = false) {
-    if (!forceLoader) showLoader("Đang đồng bộ chớp nhoáng...");
+function loadData(showOverlay = true) {
+    if (showOverlay) showLoader("Đang đồng bộ chớp nhoáng...");
 
-    if (typeof db === 'undefined' || typeof firebase === 'undefined') {
-        alert("Lỗi: Không tìm thấy Firebase. Hãy tải trang lại.");
+    try {
+        getDbRef();
+    } catch(e) {
+        alert(e.message);
         return;
     }
 
@@ -146,9 +160,10 @@ function renderClasses(data, isDemo = false) {
         classCard.style.animationDelay = `${delayIndex * 0.08}s`; // Animation mọc lần lượt
         delayIndex++;
         
+        let safeClassName = escapeHtml(className);
         let html = `
             <div class="class-header">
-                📚 ${className}
+                📚 ${safeClassName}
                 <span>Sĩ số: <b>${students.length}</b></span>
             </div>
             <div class="student-list" id="list-${className.replace(/\s+/g, '')}">
@@ -170,17 +185,20 @@ function renderClasses(data, isDemo = false) {
             const cardLabel = (!isNaN(cardType) && String(cardType).trim() !== "") ? cardType + " Buổi" : cardType;
             const absences = std["So_Ngay_Vang"] || "0";
             
+            let safeName = escapeHtml(std["Ten_Hoc_Vien"]);
+            let safeNameAttr = escapeAttr(std["Ten_Hoc_Vien"]);
+            let safeClassAttr = escapeAttr(className);
             html += `
                 <div class="student-item ${isExpired ? 'expired' : ''}">
                     <div class="student-info">
-                        <h4>${std["Ten_Hoc_Vien"]}</h4>
+                        <h4>${safeName}</h4>
                         <div class="student-stats">
-                            <span class="tag ${isExpired ? 'tag-danger' : 'tag-blue'}">Thẻ ${cardLabel}</span>
+                            <span class="tag ${isExpired ? 'tag-danger' : 'tag-blue'}">Thẻ ${escapeHtml(cardLabel)}</span>
                             <span style="display:flex; margin-top:5px; align-items: center; justify-content: space-between; width: 100%; gap: 5px; flex-wrap: wrap;">
-                                <span>Đã vắng: <b>${absences}</b> | Còn: <b style="${isExpired ? 'color: var(--danger); font-size: 1.25rem; font-weight: 900;' : 'color: #0369a1; font-size: 1.25rem; font-weight: 900;'}">${remainDisplay}</b></span>
+                                <span>Đã vắng: <b>${escapeHtml(absences)}</b> | Còn: <b style="${isExpired ? 'color: var(--danger); font-size: 1.25rem; font-weight: 900;' : 'color: #0369a1; font-size: 1.25rem; font-weight: 900;'}">${escapeHtml(remainDisplay)}</b></span>
                                 <span>
-                                    <button class="btn-renew btn-deduct" onclick="deductIndividual('${std["Ten_Hoc_Vien"]}', '${className}')">➖ Trừ Lẻ</button>
-                                    <button class="btn-renew" onclick="openRenewModal('${std["Ten_Hoc_Vien"]}', '${className}')">🔄 Gia Hạn</button>
+                                    <button class="btn-renew btn-deduct" data-student="${safeNameAttr}" data-class="${safeClassAttr}" onclick="deductIndividual(this.dataset.student, this.dataset.class)">➖ Trừ Lẻ</button>
+                                    <button class="btn-renew" data-student="${safeNameAttr}" data-class="${safeClassAttr}" onclick="openRenewModal(this.dataset.student, this.dataset.class)">🔄 Gia Hạn</button>
                                 </span>
                             </span>
                             ${isExpired ? '<div style="color:#b91c1c; font-size:0.8rem; margin-top:5px; font-weight:700;">⚠️ Cần Mua Thẻ Mới!</div>' : ''}
@@ -188,7 +206,7 @@ function renderClasses(data, isDemo = false) {
                     </div>
                     <label class="absence-toggle" title="Nếu học viên này nghỉ, TICK CHỌN để bảo lưu.">
                         Vắng?
-                        <input type="checkbox" class="absent-cb" data-class="${className}" value="${std["Ten_Hoc_Vien"]}">
+                        <input type="checkbox" class="absent-cb" data-class="${safeClassAttr}" value="${safeNameAttr}">
                     </label>
                 </div>
             `;
@@ -199,10 +217,10 @@ function renderClasses(data, isDemo = false) {
             </div>
             <div class="card-footer" style="display:flex; flex-direction:column; gap: 12px;">
                 <div style="display:flex; justify-content: space-between; align-items:center;">
-                   <button class="btn-renew" style="float:none; margin:0;" onclick="openHistoryModal('${className}')">⏳ Xem Lịch Sử Lớp</button>
+                   <button class="btn-renew" style="float:none; margin:0;" data-class="${safeClassAttr}" onclick="openHistoryModal(this.dataset.class)">⏳ Xem Lịch Sử Lớp</button>
                    <input type="date" id="date_${className}" value="${new Date().toISOString().split('T')[0]}" style="padding: 6px 10px; border-radius: 8px; border: 1px solid var(--border); outline: none; font-family: inherit; font-size: 0.9rem; font-weight: 600; color: #475569;" title="Chọn ngày điểm danh (Bù)">
                 </div>
-                <button class="btn-danger" id="btn_attend_${className}" onclick="startSession('${className}', ${isDemo})">
+                <button class="btn-danger" id="btn_attend_${className}" data-class="${safeClassAttr}" data-demo="${isDemo}" onclick="startSession(this.dataset.class, this.dataset.demo === 'true')">
                     BẤM CHỐT ĐIỂM DANH
                 </button>
             </div>
@@ -230,11 +248,12 @@ async function startSession(className, isDemo) {
 
     let histArr = window.fbData?.Lich_Su_Diem_Danh || [];
     let normClass = String(className || "").trim().toLowerCase();
+    let normSelectedDate = String(selectedDate).trim().split('T')[0];
     for (let i = 1; i < histArr.length; i++) {
         if (!histArr[i]) continue;
-        let rowDate = String(histArr[i][0] || "").trim();
+        let rowDate = String(histArr[i][0] || "").trim().split('T')[0];
         let rowClass = String(histArr[i][1] || "").trim().toLowerCase();
-        if (rowDate === selectedDate && (rowClass === normClass || histArr[i][1] === className)) {
+        if (rowDate === normSelectedDate && (rowClass === normClass || histArr[i][1] === className)) {
              alert(`Lớp ${className} đã được chốt trong ngày ${displayDate}. Nếu có học viên đến muộn, hãy nhấn nút "➖ Trừ Lẻ".`);
              return;
         }
@@ -265,9 +284,12 @@ async function startSession(className, isDemo) {
                 presentList.push(sName);
                 let oldR = mainArr[i][colRemaining];
                 if (oldR === "" || oldR === undefined) oldR = mainArr[i][colCardType];
-                if (!isNaN(oldR) && String(oldR).trim() !== "") {
-                    let r = parseInt(oldR);
-                    if (r > 0) mainArr[i][colRemaining] = r - 1;
+                // Loại "Theo khóa" — không cần trừ buổi
+                if (String(oldR).trim().toLowerCase() !== 'theo khóa') {
+                    if (!isNaN(oldR) && String(oldR).trim() !== "") {
+                        let r = parseInt(oldR);
+                        if (r > 0) mainArr[i][colRemaining] = r - 1;
+                    }
                 }
             }
         }
@@ -282,7 +304,7 @@ async function startSession(className, isDemo) {
     ]);
 
     try {
-        await db.ref('/' + (CONFIG.DB_VAULT || '')).update({
+        await getDbRef().update({
              '/Main': mainArr,
              '/Lich_Su_Diem_Danh': histArr
         });
@@ -360,14 +382,14 @@ async function submitRenewForm(e) {
 
     if (renewed) {
          try {
-             await db.ref('/' + (CONFIG.DB_VAULT || '') + '/Main').set(mainArr);
+             await getDbRef('/Main').set(mainArr);
              alert("✅ Nạp thành công cho " + studentName);
              closeRenewModal();
          } catch(err) {
              alert("Lỗi: " + err.message);
          }
     }
-    btn.innerText = "💳 Nạp Thẻ Gian Hạn";
+    btn.innerText = "💳 Nạp Thẻ & Gia Hạn";
     btn.disabled = false;
 }
 
@@ -399,7 +421,7 @@ async function submitForm(e) {
     mainArr.push(newRow);
 
     try {
-        await db.ref('/' + (CONFIG.DB_VAULT || '') + '/Main').set(mainArr);
+        await getDbRef('/Main').set(mainArr);
         alert("✅ Khai báo thành công!");
         closeModal();
         document.getElementById("addForm").reset();
@@ -471,11 +493,17 @@ function openHistoryModal(className) {
     if(!foundAny) tbody.innerHTML = `<tr><td colspan="3" style="text-align:center; padding: 25px; color: #64748b; font-style:italic;">Chưa có lịch sử khớp.</td></tr>`;
 }
 
+let _deductBusy = false;
 window.deductIndividual = async function(studentName, className) {
+    if (_deductBusy) return;
     if (!confirm(`Xử lý [THÊM 1 CA / XOÁ VẮNG] cho ${studentName} ngày hôm nay?`)) return;
+    _deductBusy = true;
+    showLoader("Đang xử lý trừ thẻ...");
 
+    try {
     const dateInp = document.getElementById(`date_${className}`);
     let selectedDate = dateInp ? dateInp.value : new Date().toISOString().split('T')[0];
+    let normSelectedDate = String(selectedDate).trim().split('T')[0];
 
     let histArr = window.fbData?.Lich_Su_Diem_Danh || [];
     let mainArr = window.fbData?.Main || [];
@@ -494,9 +522,9 @@ window.deductIndividual = async function(studentName, className) {
     let targetClassNorm = String(className || "").trim().toLowerCase();
     for (let j = 1; j < histArr.length; j++) {
          if (!histArr[j]) continue;
-         let rowD = String(histArr[j][hDate] || "").trim();
+         let rowD = String(histArr[j][hDate] || "").trim().split('T')[0];
          let rowC = String(histArr[j][hClass] || "").trim().toLowerCase();
-         if (rowD === String(selectedDate).trim() && (rowC === targetClassNorm || histArr[j][hClass] === className)) {
+         if (rowD === normSelectedDate && (rowC === targetClassNorm || histArr[j][hClass] === className)) {
              let presStr = String(histArr[j][hPres]);
              let absStr = String(histArr[j][hAbs]);
              
@@ -526,7 +554,10 @@ window.deductIndividual = async function(studentName, className) {
         if (mainArr[i][colClass] === className && mainArr[i][colName] === studentName) {
              let oldR = mainArr[i][colRemaining];
              if (oldR === "" || oldR === undefined) oldR = mainArr[i][colCardType];
-             if (!isNaN(oldR) && String(oldR).trim() !== "") {
+             // Xử lý loại "Theo khóa" — không cần trừ buổi
+             if (String(oldR).trim().toLowerCase() === 'theo khóa') {
+                 deducted = true;
+             } else if (!isNaN(oldR) && String(oldR).trim() !== "") {
                  let rem = parseInt(oldR);
                  if (rem > 0) { mainArr[i][colRemaining] = rem - 1; deducted = true; }
              }
@@ -538,18 +569,20 @@ window.deductIndividual = async function(studentName, className) {
         }
     }
 
-    if (!deducted) return alert("Học viên đã hết thẻ, không thể trừ.");
+    if (!deducted) { alert("Học viên đã hết thẻ, không thể trừ."); return; }
 
     if (!hasLateArrivalFix) {
          if (histArr.length === 0) histArr.push(["Ngay_Diem_Danh", "Ten_Lop", "Hoc_Vien_Co_Mat", "Hoc_Vien_Vang"]);
          histArr.push([selectedDate, className, studentName + " (Học Gộp)", "Không có ai"]);
     }
 
-    try {
-        await db.ref('/' + (CONFIG.DB_VAULT || '')).update({'/Main': mainArr, '/Lich_Su_Diem_Danh': histArr});
+        await getDbRef().update({'/Main': mainArr, '/Lich_Su_Diem_Danh': histArr});
         alert(hasLateArrivalFix ? `Đã xoá án vắng và trừ thẻ cho ${studentName}.` : `Đã trừ thẻ bù ngày cho ${studentName}.`);
     } catch(err) {
         alert("Lỗi DB: " + err.message);
+    } finally {
+        _deductBusy = false;
+        hideLoader();
     }
 }
 
@@ -925,7 +958,7 @@ async function submitFinanceConfig(e) {
     }
 
     try {
-        await db.ref('/' + (CONFIG.DB_VAULT || '')).update({
+        await getDbRef().update({
             '/Cau_Hinh_Tai_Chinh': cauHinhData,
             '/Lich_Su_Thu_Chi_Thang': thuChiData
         });

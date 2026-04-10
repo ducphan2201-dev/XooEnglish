@@ -439,6 +439,15 @@ function closeHistoryModal() {
     document.getElementById("historyModal").style.display = "none";
 }
 
+// Hàm tiện ích: chuẩn hoá giá trị ngày từ Firebase/GSheet thành chuỗi YYYY-MM-DD
+function normDateStr(v) {
+    if (v == null) return "";
+    let s = String(v).trim();
+    // Nếu là chuỗi ISO dài (vd "2026-04-10T00:00:00.000Z"), cắt lấy phần ngày
+    if (s.includes('T')) s = s.split('T')[0];
+    return s;
+}
+
 function openHistoryModal(className) {
     document.getElementById("historyClassName").innerText = className;
     const tbody = document.getElementById("historyBody");
@@ -452,7 +461,8 @@ function openHistoryModal(className) {
          return;
     }
 
-    let headers = histArr[0].map(h => String(h).trim());
+    // Guard: ép header về String an toàn kể cả khi GSheet trả Date object / null
+    let headers = (histArr[0] || []).map(h => (h == null ? "" : String(h)).trim());
     let colDate = headers.indexOf("Ngay_Diem_Danh");
     if (colDate === -1) colDate = 0;
     let colClass = headers.indexOf("Ten_Lop");
@@ -472,7 +482,8 @@ function openHistoryModal(className) {
              const tr = document.createElement("tr");
              tr.style.borderBottom = "1px solid var(--border)";
              
-             let dt = histArr[i][colDate] || "";
+             // Chuẩn hoá ngày hiển thị (cắt bỏ phần T nếu có)
+             let dt = normDateStr(histArr[i][colDate]);
              let pres = histArr[i][colPres] || "";
              let abs = histArr[i][colAbs] || "";
 
@@ -696,12 +707,17 @@ function calculateFinanceDashboard(monthParam, rawData) {
 
     const classPrices = {};
     for (let i = 1; i < cauHinhData.length; i++) {
+        if (!cauHinhData[i]) continue;
         classPrices[String(cauHinhData[i][0]).trim()] = parseFloat(cauHinhData[i][1]) || 0;
     }
 
     let monthCost = 0;
     for (let i = 1; i < thuChiData.length; i++) {
-        const t = String(thuChiData[i][0]).trim();
+        if (!thuChiData[i]) continue;
+        // Chuẩn hoá key tháng (có thể bị GSheet serialize thành ISO date hoặc chuỗi YYYY-MM)
+        let t = normDateStr(thuChiData[i][0]);
+        // Nếu key dạng YYYY-MM-DD, chỉ lấy YYYY-MM
+        if (t.length > 7) t = t.substring(0, 7);
         const chi = parseFloat(thuChiData[i][2]) || 0;
         if (monthParam && t === monthParam) {
             monthCost = chi;
@@ -711,14 +727,19 @@ function calculateFinanceDashboard(monthParam, rawData) {
     const sessionsPerClassLifetime = {};
     const sessionsPerClassMonth = {};
     let totalSessionsMonth = 0;
+    // Tập hợp deduplicate: tránh đếm trùng khi cùng ngày + lớp xuất hiện >1 lần
+    const sessionSeen = new Set();
 
     for (let i = 1; i < historyData.length; i++) {
-        let dStr = historyData[i][0];
-        if (typeof dStr === 'string' && dStr.includes('T')) {
-            const tempD = new Date(dStr);
-            dStr = `${tempD.getFullYear()}-${String(tempD.getMonth()+1).padStart(2,'0')}-${String(tempD.getDate()).padStart(2,'0')}`;
-        }
-        const cName = String(historyData[i][1]).trim();
+        if (!historyData[i]) continue;
+        let dStr = normDateStr(historyData[i][0]);
+        const cName = String(historyData[i][1] || "").trim();
+        if (!cName) continue;
+        
+        // Dedup: mỗi combo ngày+lớp chỉ tính 1 buổi
+        const sessionKey = dStr + '|' + cName.toLowerCase();
+        if (sessionSeen.has(sessionKey)) continue;
+        sessionSeen.add(sessionKey);
         
         if (!sessionsPerClassLifetime[cName]) sessionsPerClassLifetime[cName] = 0;
         sessionsPerClassLifetime[cName]++;

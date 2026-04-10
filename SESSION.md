@@ -14,4 +14,8 @@
   - Bổ sung lại header/nút đóng cho Modal HDSD.
 
 ## Công việc hiện tại
-- Hoàn tất rà soát và commit các chỉnh sửa mới nhất để tiếp tục dự án XooEnglish.
+- Fix 4 bug nghiêm trọng do đồng bộ GSheet ↔ Firebase:
+  1. **Lịch sử điểm danh không mở**: GSheet serialize cột Date thành Date object → Firebase nhận ISO string dài → header bị crash `String(null)`. Fix: thêm `normDateStr()` và guard null-safe cho header map.
+  2. **Data GSheet vs App không khớp**: GSheet `onEdit()` gửi Date object qua `JSON.stringify()` → Firebase lưu `"2026-04-10T00:00:00.000Z"` nhưng App so sánh `"2026-04-10"`. Fix: thêm `normalizeDataForFirebase()` chuyển tất cả Date → `YYYY-MM-DD` trước khi gửi.
+  3. **Chi phí tháng trước bị mất**: Key tháng trên `Lich_Su_Thu_Chi_Thang` bị GSheet serialize thành ISO date string dài, App lookup `"2026-04"` không khớp `"2026-04-01T..."`. Fix: chuẩn hoá key tháng qua `normDateStr()` + cắt 7 ký tự đầu.
+  4. **Thêm 1 buổi trên GSheet nhảy 2 buổi**: Mỗi dòng lịch sử được đếm riêng, nếu trùng ngày+lớp (do onEdit fire nhiều lần hoặc paste trùng) thì đếm gấp đôi. Fix: thêm `Set` dedup theo key `date|className`.

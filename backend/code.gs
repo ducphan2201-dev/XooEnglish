@@ -12,6 +12,35 @@ function onOpen() {
 }
 
 // ----------------------------------------------------
+// HÀM CHUẨN HOÁ: Chuyển Date object thành chuỗi YYYY-MM-DD
+// Google Sheets serialize cột Date là JS Date object.
+// JSON.stringify sẽ biến nó thành chuỗi ISO dài (VD: "2026-04-10T00:00:00.000Z")
+// khiến App so sánh ngày bị lệch. Hàm này chuẩn hoá 1 lần trước khi gửi Firebase.
+// ----------------------------------------------------
+function normalizeDataForFirebase(data) {
+  if (!data || data.length === 0) return data;
+  var result = [];
+  for (var i = 0; i < data.length; i++) {
+    if (!data[i]) continue; // bỏ null
+    var row = [];
+    for (var j = 0; j < data[i].length; j++) {
+      var cell = data[i][j];
+      if (cell instanceof Date) {
+        // Chuyển Date object thành YYYY-MM-DD thuần tuý
+        var yyyy = cell.getFullYear();
+        var mm = String(cell.getMonth() + 1).padStart(2, '0');
+        var dd = String(cell.getDate()).padStart(2, '0');
+        row.push(yyyy + '-' + mm + '-' + dd);
+      } else {
+        row.push(cell);
+      }
+    }
+    result.push(row);
+  }
+  return result;
+}
+
+// ----------------------------------------------------
 // TÍNH NĂNG 2: PHẢN XẠ KHI ADMIN SỬA TAY TRÊN GSHEET (Cập nhật Tức Thời Toàn Bộ)
 // ----------------------------------------------------
 function onEdit(e) {
@@ -30,7 +59,9 @@ function onEdit(e) {
   if (nodeName === "") return; 
   
   // Đọc toàn bộ bảng thay vì 1 dòng để CHỐNG lệch Index do Xóa/Thêm/Sort
-  var data = sheet.getDataRange().getValues();
+  var rawData = sheet.getDataRange().getValues();
+  // Chuẩn hoá Date object → chuỗi YYYY-MM-DD trước khi gửi Firebase
+  var data = normalizeDataForFirebase(rawData);
   
   var options = {
     method: "put", 
@@ -116,16 +147,16 @@ function pushInitialDataToFirebase() {
   var db = {};
   
   var sheet = ss.getSheets()[0]; 
-  db["Main"] = sheet.getDataRange().getValues();
+  db["Main"] = normalizeDataForFirebase(sheet.getDataRange().getValues());
   
   var historySheet = ss.getSheetByName("Lich_Su_Diem_Danh");
-  if(historySheet) db["Lich_Su_Diem_Danh"] = historySheet.getDataRange().getValues();
+  if(historySheet) db["Lich_Su_Diem_Danh"] = normalizeDataForFirebase(historySheet.getDataRange().getValues());
   
   var cauHinhSheet = ss.getSheetByName("Cau_Hinh_Tai_Chinh");
-  if(cauHinhSheet) db["Cau_Hinh_Tai_Chinh"] = cauHinhSheet.getDataRange().getValues();
+  if(cauHinhSheet) db["Cau_Hinh_Tai_Chinh"] = normalizeDataForFirebase(cauHinhSheet.getDataRange().getValues());
   
   var thuChiSheet = ss.getSheetByName("Lich_Su_Thu_Chi_Thang");
-  if(thuChiSheet) db["Lich_Su_Thu_Chi_Thang"] = thuChiSheet.getDataRange().getValues();
+  if(thuChiSheet) db["Lich_Su_Thu_Chi_Thang"] = normalizeDataForFirebase(thuChiSheet.getDataRange().getValues());
   
   var options = {
     method: "put",

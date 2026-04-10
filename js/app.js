@@ -248,10 +248,10 @@ async function startSession(className, isDemo) {
 
     let histArr = window.fbData?.Lich_Su_Diem_Danh || [];
     let normClass = String(className || "").trim().toLowerCase();
-    let normSelectedDate = String(selectedDate).trim().split('T')[0];
+    let normSelectedDate = normDateStr(selectedDate);
     for (let i = 1; i < histArr.length; i++) {
         if (!histArr[i]) continue;
-        let rowDate = String(histArr[i][0] || "").trim().split('T')[0];
+        let rowDate = normDateStr(histArr[i][0]);
         let rowClass = String(histArr[i][1] || "").trim().toLowerCase();
         if (rowDate === normSelectedDate && (rowClass === normClass || histArr[i][1] === className)) {
              alert(`Lớp ${className} đã được chốt trong ngày ${displayDate}. Nếu có học viên đến muộn, hãy nhấn nút "➖ Trừ Lẻ".`);
@@ -474,16 +474,23 @@ function openHistoryModal(className) {
 
     let foundAny = false;
     let targetClass = String(className || "").trim().toLowerCase();
+    // Dedup: chỉ hiện 1 dòng cho mỗi ngày (tránh trùng do GSheet timezone bug)
+    const histSeen = new Set();
     for (let i = histArr.length - 1; i >= 1; i--) {
         if (!histArr[i]) continue;
         let rowClass = String(histArr[i][colClass] || "").trim().toLowerCase();
         if (rowClass === targetClass || histArr[i][colClass] === className) {
+             // Chuẩn hoá ngày hiển thị (cắt bỏ phần T nếu có)
+             let dt = normDateStr(histArr[i][colDate]);
+             // Dedup theo ngày — bỏ qua dòng trùng
+             const histKey = dt + '|' + rowClass;
+             if (histSeen.has(histKey)) continue;
+             histSeen.add(histKey);
+
              foundAny = true;
              const tr = document.createElement("tr");
              tr.style.borderBottom = "1px solid var(--border)";
              
-             // Chuẩn hoá ngày hiển thị (cắt bỏ phần T nếu có)
-             let dt = normDateStr(histArr[i][colDate]);
              let pres = histArr[i][colPres] || "";
              let abs = histArr[i][colAbs] || "";
 
@@ -514,13 +521,13 @@ window.deductIndividual = async function(studentName, className) {
     try {
     const dateInp = document.getElementById(`date_${className}`);
     let selectedDate = dateInp ? dateInp.value : new Date().toISOString().split('T')[0];
-    let normSelectedDate = String(selectedDate).trim().split('T')[0];
+    let normSelectedDate = normDateStr(selectedDate);
 
     let histArr = window.fbData?.Lich_Su_Diem_Danh || [];
     let mainArr = window.fbData?.Main || [];
     
     let hasLateArrivalFix = false;
-    let histHeaders = histArr[0] ? histArr[0].map(h => String(h).trim()) : [];
+    let histHeaders = (histArr[0] || []).map(h => (h == null ? "" : String(h)).trim());
     let hDate = histHeaders.indexOf("Ngay_Diem_Danh");
     if (hDate === -1) hDate = 0;
     let hClass = histHeaders.indexOf("Ten_Lop");
@@ -533,7 +540,7 @@ window.deductIndividual = async function(studentName, className) {
     let targetClassNorm = String(className || "").trim().toLowerCase();
     for (let j = 1; j < histArr.length; j++) {
          if (!histArr[j]) continue;
-         let rowD = String(histArr[j][hDate] || "").trim().split('T')[0];
+         let rowD = normDateStr(histArr[j][hDate]);
          let rowC = String(histArr[j][hClass] || "").trim().toLowerCase();
          if (rowD === normSelectedDate && (rowC === targetClassNorm || histArr[j][hClass] === className)) {
              let presStr = String(histArr[j][hPres]);

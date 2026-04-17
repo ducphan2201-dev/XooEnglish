@@ -185,13 +185,14 @@ function renderClasses(data, isDemo = false) {
             
             const cardLabel = (!isNaN(cardType) && String(cardType).trim() !== "") ? cardType + " Buổi" : cardType;
             const absences = std["So_Ngay_Vang"] || "0";
+            const soThe = std["So_The_Da_Mua"] || "1";
             
             let safeName = escapeHtml(std["Ten_Hoc_Vien"]);
             let safeNameAttr = escapeAttr(std["Ten_Hoc_Vien"]);
             html += `
                 <div class="student-item ${isExpired ? 'expired' : ''}">
                     <div class="student-info">
-                        <h4>${safeName}</h4>
+                        <h4>${safeName} <span style="font-size: 0.8rem; color: #64748b; font-weight: normal;">(Đã mua: ${escapeHtml(soThe)} thẻ)</span></h4>
                         <div class="student-stats">
                             <span class="tag ${isExpired ? 'tag-danger' : 'tag-blue'}">Thẻ ${escapeHtml(cardLabel)}</span>
                             <span style="display:flex; margin-top:5px; align-items: center; justify-content: space-between; width: 100%; gap: 5px; flex-wrap: wrap;">
@@ -358,13 +359,26 @@ async function submitRenewForm(e) {
     let colName = headers.indexOf("Ten_Hoc_Vien");
     let colCardType = headers.indexOf("Loai_The");
     let colRemaining = headers.indexOf("The_Con_Lai");
+    
+    let colSoThe = headers.indexOf("So_The_Da_Mua");
+    if (colSoThe === -1) {
+        colSoThe = headers.length;
+        mainArr[0].push("So_The_Da_Mua");
+    }
 
     let renewed = false;
     for (let i = 1; i < mainArr.length; i++) {
         if (!mainArr[i]) continue;
+        
+        while(mainArr[i].length <= colSoThe) { mainArr[i].push(""); }
+        
         if (mainArr[i][colClass] === className && mainArr[i][colName] === studentName) {
             let oldR = mainArr[i][colRemaining];
             if (oldR === "" || oldR === undefined) oldR = mainArr[i][colCardType];
+            
+            let currentSoThe = parseInt(mainArr[i][colSoThe]);
+            if (isNaN(currentSoThe)) currentSoThe = 1;
+            mainArr[i][colSoThe] = currentSoThe + 1;
             
             if (cardVal === "Theo khóa") {
                 mainArr[i][colRemaining] = "Theo khóa";
@@ -406,17 +420,24 @@ async function submitForm(e) {
     
     let mainArr = window.fbData?.Main || [];
     if(mainArr.length === 0) {
-        mainArr.push(["Ten_Lop", "Ten_Hoc_Vien", "Ngay_Bat_Dau", "Loai_The", "So_Ngay_Vang", "The_Con_Lai"]);
+        mainArr.push(["Ten_Lop", "Ten_Hoc_Vien", "Ngay_Bat_Dau", "Loai_The", "So_Ngay_Vang", "The_Con_Lai", "So_The_Da_Mua"]);
     }
     
     let headers = mainArr[0].map(h => String(h).trim());
-    let newRow = new Array(headers.length).fill("");
+    let colSoThe = headers.indexOf("So_The_Da_Mua");
+    if (colSoThe === -1) {
+        colSoThe = headers.length;
+        mainArr[0].push("So_The_Da_Mua");
+    }
+
+    let newRow = new Array(mainArr[0].length).fill("");
     if(headers.indexOf("Ten_Lop") !== -1) newRow[headers.indexOf("Ten_Lop")] = className;
     if(headers.indexOf("Ten_Hoc_Vien") !== -1) newRow[headers.indexOf("Ten_Hoc_Vien")] = name;
     if(headers.indexOf("Ngay_Bat_Dau") !== -1) newRow[headers.indexOf("Ngay_Bat_Dau")] = date;
     if(headers.indexOf("Loai_The") !== -1) newRow[headers.indexOf("Loai_The")] = card;
     if(headers.indexOf("So_Ngay_Vang") !== -1) newRow[headers.indexOf("So_Ngay_Vang")] = 0;
     if(headers.indexOf("The_Con_Lai") !== -1) newRow[headers.indexOf("The_Con_Lai")] = card;
+    newRow[colSoThe] = 1;
 
     mainArr.push(newRow);
 
@@ -768,8 +789,29 @@ function calculateFinanceDashboard(monthParam, rawData) {
     const mainClasses = {};
     const classStudentCount = {};
     const classRemainingSessions = {};
+    let exactSessionsSold = 0;
+    let exactSessionsOwed = 0;
+
     if (colClass !== -1) {
         for(let i=1; i<mainData.length; i++) {
+            if (!mainData[i]) continue;
+            
+            let cardTypeVal = mainData[i][colCardType];
+            
+            let soTheCol = headers.indexOf("So_The_Da_Mua");
+            let soThe = 1;
+            if (soTheCol !== -1) {
+                let val = parseInt(mainData[i][soTheCol]);
+                if (!isNaN(val)) soThe = val;
+            }
+
+            if (cardTypeVal !== null && cardTypeVal !== undefined) {
+                let parsedCard = parseInt(cardTypeVal);
+                if (!isNaN(parsedCard)) {
+                    exactSessionsSold += (parsedCard * soThe);
+                }
+            }
+
             const c = String(mainData[i][colClass]).trim();
             if (c) {
                 if (!mainClasses[c]) {
@@ -786,6 +828,7 @@ function calculateFinanceDashboard(monthParam, rawData) {
                     rem = parseInt(rem) || 0;
                 }
                 classRemainingSessions[c] += rem;
+                exactSessionsOwed += rem;
             }
         }
     }
@@ -834,8 +877,7 @@ function calculateFinanceDashboard(monthParam, rawData) {
     Object.keys(classPrices).forEach(k => {
         if(classPrices[k] > 0) { totalClassPrices += classPrices[k]; classCountForPrice++; }
     });
-    const averagePrice = classCountForPrice > 0 ? (totalClassPrices / classCountForPrice) : 0;
-    const lifetimeSessionsSold = averagePrice > 0 ? (lifetimeGathered / averagePrice) : 0;
+    
     let lifetimeSessionsTaughtTotal = 0;
     Object.keys(sessionsPerClassLifetime).forEach(k => { lifetimeSessionsTaughtTotal += sessionsPerClassLifetime[k]; });
 
@@ -852,9 +894,9 @@ function calculateFinanceDashboard(monthParam, rawData) {
             gathered: lifetimeGathered,
             realized: lifetimeRealized,
             deferred: lifetimeDeferred,
-            sessions_sold: Math.round(lifetimeSessionsSold),
+            sessions_sold: exactSessionsSold,
             sessions_taught: lifetimeSessionsTaughtTotal,
-            sessions_owed: Math.max(0, Math.round(lifetimeSessionsSold) - lifetimeSessionsTaughtTotal)
+            sessions_owed: exactSessionsOwed
         }
     };
 }

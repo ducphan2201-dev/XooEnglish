@@ -13,9 +13,19 @@
   - Dọn sạch codebase (xóa Vite, React boilerplate) để hoàn thiện Vanilla JS + Firebase Hybrid.
   - Bổ sung lại header/nút đóng cho Modal HDSD.
 
+- **17/04/2026**:
+  - Đã fix 4 bug nghiêm trọng do đồng bộ GSheet ↔ Firebase:
+    1. **Lịch sử điểm danh không mở**: Thêm `normDateStr()` và guard null-safe cho header map trong `app.js`.
+    2. **Data GSheet vs App không khớp**: Thêm `normalizeDataForFirebase()` trong `code.gs` chuyển tất cả Date → `YYYY-MM-DD` trước khi gửi.
+    3. **Chi phí tháng trước bị mất**: Chuẩn hoá key tháng qua `normDateStr()` + cắt 7 ký tự đầu trên App.
+    4. **Thêm 1 buổi trên GSheet nhảy 2 buổi**: Thêm `Set` dedup theo key `date|className` trong `app.js`.
+  - Khắc phục lỗi sai logic "Tổng Buổi Bán" & "Buổi Còn Nợ" trên Dashboard Tài Chính: Thay vì dùng công thức ước tính (Tổng doanh thu / Giá trung bình), nay hệ thống sẽ đếm chính xác trực tiếp bằng cách cộng dồn cột "Loai_The" và "The_Con_Lai" của tất cả học viên trong `Main` sheet.
+  - **Bổ sung tính năng theo yêu cầu mới:**
+    - Thêm trường dữ liệu `So_The_Da_Mua` vào hệ thống (tự động thêm cột vào Sheet nếu chưa có).
+    - Khai báo học viên mới sẽ mặc định "Số thẻ đã mua" là 1.
+    - Mỗi khi ấn "Gia hạn thẻ", hệ thống sẽ tự động cộng thêm 1 vào "Số thẻ đã mua" của học viên đó.
+    - Hiển thị thông tin "(Đã mua: X thẻ)" ngay cạnh tên học viên ở giao diện lớp học để giáo viên dễ theo dõi.
+    - Công thức "Tổng Buổi Bán" được cập nhật thành: `Loại thẻ × Số thẻ đã mua` để đảm bảo độ chính xác tuyệt đối.
+
 ## Công việc hiện tại
-- Fix 4 bug nghiêm trọng do đồng bộ GSheet ↔ Firebase:
-  1. **Lịch sử điểm danh không mở**: GSheet serialize cột Date thành Date object → Firebase nhận ISO string dài → header bị crash `String(null)`. Fix: thêm `normDateStr()` và guard null-safe cho header map.
-  2. **Data GSheet vs App không khớp**: GSheet `onEdit()` gửi Date object qua `JSON.stringify()` → Firebase lưu `"2026-04-10T00:00:00.000Z"` nhưng App so sánh `"2026-04-10"`. Fix: thêm `normalizeDataForFirebase()` chuyển tất cả Date → `YYYY-MM-DD` trước khi gửi.
-  3. **Chi phí tháng trước bị mất**: Key tháng trên `Lich_Su_Thu_Chi_Thang` bị GSheet serialize thành ISO date string dài, App lookup `"2026-04"` không khớp `"2026-04-01T..."`. Fix: chuẩn hoá key tháng qua `normDateStr()` + cắt 7 ký tự đầu.
-  4. **Thêm 1 buổi trên GSheet nhảy 2 buổi**: Mỗi dòng lịch sử được đếm riêng, nếu trùng ngày+lớp (do onEdit fire nhiều lần hoặc paste trùng) thì đếm gấp đôi. Fix: thêm `Set` dedup theo key `date|className`.
+- Đang chờ yêu cầu tiếp theo từ người dùng.

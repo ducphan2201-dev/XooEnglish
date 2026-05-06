@@ -97,6 +97,6 @@
 - Status: User reported live console still loading old `app.js` with `Missing catch or finally after try`. Verified GitHub Pages serves the fixed `js/app.js` when requested with a cache-busting query.
 - Root cause: `index.html` referenced `js/app.js` without a version, so the browser/CDN could keep the old broken script for up to the GitHub Pages cache window.
 - Decisions: Added version query strings to `js/config.js` and `js/app.js`, and added an inline favicon to remove the live `favicon.ico 404` console error.
-- Validation: `node --check .\js\app.js` passed.
+- Validation: `node --check .\js\app.js` passed. Live GitHub Pages verification passed: production `index.html` now references `js/app.js?v=20260506-2`, production `app.js` parses successfully, and the favicon is inline.
 - Files touched: `index.html`, `SESSION.md`.
-- Next step: Push and re-check the live page after GitHub Pages publishes the new `index.html`.
+- Next step: User should hard refresh the live browser tab once, then verify there is no `Missing catch or finally after try` console error.

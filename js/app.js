@@ -18,8 +18,16 @@ function escapeAttr(str) {
 // === UTILITY: Guard check Firebase DB ===
 function extractNumberSafe(val) {
     if (val === "" || val === undefined || val === null) return NaN;
-    const match = String(val).match(/-?\d+/);
-    return match ? parseInt(match[0], 10) : NaN;
+    let s = String(val).toLowerCase();
+    const match = s.match(/-?\d+/);
+    if (match) {
+        let num = parseInt(match[0], 10);
+        if ((s.includes('nợ') || s.includes('âm')) && num > 0) {
+            num = -num;
+        }
+        return num;
+    }
+    return NaN;
 }
 
 function getDbRef(path) {
@@ -594,36 +602,64 @@ window.deductIndividual = async function(studentName, className) {
     if (hAbs === -1) hAbs = 3;
 
     let targetClassNorm = String(className || "").trim().toLowerCase();
+    let foundRowIndex = -1;
+    let studentAlreadyPresent = false;
+    let studentWasAbsentInRow = -1;
+    let wasRemovedFromAbsent = false;
+
     for (let j = 1; j < histArr.length; j++) {
          if (!histArr[j]) continue;
          let rowD = normDateStr(histArr[j][hDate]);
          let rowC = String(histArr[j][hClass] || "").trim().toLowerCase();
          if (rowD === normSelectedDate && (rowC === targetClassNorm || histArr[j][hClass] === className)) {
-             let presStr = String(histArr[j][hPres]);
-             let absStr = String(histArr[j][hAbs]);
+             if (foundRowIndex === -1) foundRowIndex = j;
              
-             let abList = absStr === "Không có ai" ? [] : absStr.split(",").map(x => x.trim());
+             let presStr = String(histArr[j][hPres]);
              let prList = presStr === "Không có ai" ? [] : presStr.split(",").map(x => x.trim());
              
-             if (abList.includes(studentName)) {
-                 abList = abList.filter(x => x !== studentName);
-                 histArr[j][hAbs] = abList.length > 0 ? abList.join(", ") : "Không có ai";
-             }
+             let isPresent = prList.some(name => {
+                 let cleanName = name.replace(" (Bổ sung)", "").replace(" (Học Gộp)", "").trim();
+                 return cleanName === studentName;
+             });
+             if (isPresent) studentAlreadyPresent = true;
              
-             let isAlreadyPresent = prList.some(name => name.includes(studentName));
-             if (isAlreadyPresent) {
-                 alert(`Học viên ${studentName} đã được điểm danh CÓ MẶT trong lớp này ngày hôm nay!`);
-                 _deductBusy = false;
-                 hideLoader();
-                 return;
-             }
-             if (!isAlreadyPresent) {
-                 prList.push(studentName + " (Bổ sung)");
-                 histArr[j][hPres] = prList.join(", ");
-             }
-             hasLateArrivalFix = true;
-             break;
+             let absStr = String(histArr[j][hAbs]);
+             let abList = absStr === "Không có ai" ? [] : absStr.split(",").map(x => x.trim());
+             if (abList.includes(studentName)) studentWasAbsentInRow = j;
          }
+    }
+
+    if (studentAlreadyPresent) {
+         alert(`Học viên ${studentName} đã được điểm danh CÓ MẶT trong lớp này ngày hôm nay!`);
+         _deductBusy = false;
+         hideLoader();
+         return;
+    }
+
+    if (studentWasAbsentInRow !== -1) {
+         let j = studentWasAbsentInRow;
+         let absStr = String(histArr[j][hAbs]);
+         let abList = absStr === "Không có ai" ? [] : absStr.split(",").map(x => x.trim());
+         abList = abList.filter(x => x !== studentName);
+         histArr[j][hAbs] = abList.length > 0 ? abList.join(", ") : "Không có ai";
+         
+         let presStr = String(histArr[j][hPres]);
+         let prList = presStr === "Không có ai" ? [] : presStr.split(",").map(x => x.trim());
+         prList.push(studentName + " (Bổ sung)");
+         histArr[j][hPres] = prList.join(", ");
+         
+         hasLateArrivalFix = true;
+         wasRemovedFromAbsent = true;
+    } else if (foundRowIndex !== -1) {
+         let j = foundRowIndex;
+         let presStr = String(histArr[j][hPres]);
+         let prList = presStr === "Không có ai" ? [] : presStr.split(",").map(x => x.trim());
+         prList.push(studentName + " (Bổ sung)");
+         histArr[j][hPres] = prList.join(", ");
+         
+         hasLateArrivalFix = true;
+    } else {
+         hasLateArrivalFix = false;
     }
 
     let headers = mainArr[0] ? mainArr[0].map(h => String(h).trim()) : [];
@@ -649,7 +685,7 @@ window.deductIndividual = async function(studentName, className) {
                      deducted = true;
                  }
              }
-             if (hasLateArrivalFix) {
+             if (wasRemovedFromAbsent) {
                  let ab = parseInt(mainArr[i][colAbsences]) || 0;
                  if (ab > 0) mainArr[i][colAbsences] = ab - 1;
              }

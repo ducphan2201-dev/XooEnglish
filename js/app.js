@@ -285,10 +285,9 @@ async function startSession(className, isDemo) {
                 presentList.push(sName);
                 let oldR = mainArr[i][colRemaining];
                 if (oldR === "" || oldR === undefined) oldR = mainArr[i][colCardType];
-                // Loại "Theo khóa" — không cần trừ buổi
                 if (String(oldR).trim().toLowerCase() !== 'theo khóa') {
-                    if (!isNaN(oldR) && String(oldR).trim() !== "") {
-                        let r = parseInt(oldR);
+                    let r = parseInt(oldR);
+                    if (!isNaN(r)) {
                         mainArr[i][colRemaining] = r - 1; // Cho phép trừ âm
                     }
                 }
@@ -630,10 +629,12 @@ window.deductIndividual = async function(studentName, className) {
              // Xử lý loại "Theo khóa" — không cần trừ buổi
              if (String(oldR).trim().toLowerCase() === 'theo khóa') {
                  deducted = true;
-             } else if (!isNaN(oldR) && String(oldR).trim() !== "") {
+             } else {
                  let rem = parseInt(oldR);
-                 mainArr[i][colRemaining] = rem - 1; // Cho phép trừ âm
-                 deducted = true;
+                 if (!isNaN(rem)) {
+                     mainArr[i][colRemaining] = rem - 1; // Cho phép trừ âm
+                     deducted = true;
+                 }
              }
              if (hasLateArrivalFix) {
                  let ab = parseInt(mainArr[i][colAbsences]) || 0;

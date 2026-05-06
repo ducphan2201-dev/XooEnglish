@@ -92,3 +92,11 @@
 - Validation: `node --check .\js\app.js` passed; helper tests passed; full Node VM simulations passed for `startSession`, `deductIndividual`, `submitRenewForm`, `openHistoryModal`, and `calculateFinanceDashboard`.
 - Files touched: `js/app.js`, `SESSION.md`.
 - Next step: Run one browser test on real data before deploying: attendance close, late-student deduct, card renewal from debt, history modal, and finance dashboard totals.
+
+## Production cache fix 06/05/2026
+- Status: User reported live console still loading old `app.js` with `Missing catch or finally after try`. Verified GitHub Pages serves the fixed `js/app.js` when requested with a cache-busting query.
+- Root cause: `index.html` referenced `js/app.js` without a version, so the browser/CDN could keep the old broken script for up to the GitHub Pages cache window.
+- Decisions: Added version query strings to `js/config.js` and `js/app.js`, and added an inline favicon to remove the live `favicon.ico 404` console error.
+- Validation: `node --check .\js\app.js` passed.
+- Files touched: `index.html`, `SESSION.md`.
+- Next step: Push and re-check the live page after GitHub Pages publishes the new `index.html`.

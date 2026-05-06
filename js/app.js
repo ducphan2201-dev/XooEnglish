@@ -493,42 +493,64 @@ function openHistoryModal(className) {
     let colAbs = headers.indexOf("Hoc_Vien_Vang");
     if (colAbs === -1) colAbs = 3;
 
-    let foundAny = false;
     let targetClass = String(className || "").trim().toLowerCase();
-    // Dedup: chỉ hiện 1 dòng cho mỗi ngày (tránh trùng do GSheet timezone bug)
-    const histSeen = new Set();
-    for (let i = histArr.length - 1; i >= 1; i--) {
+    
+    // Gộp dữ liệu nếu có nhiều dòng trùng ngày (ví dụ do lỗi bấm Trừ Lẻ tạo thêm dòng)
+    const mergedHistory = {};
+    const dateOrder = [];
+
+    for (let i = 1; i < histArr.length; i++) {
         if (!histArr[i]) continue;
         let rowClass = String(histArr[i][colClass] || "").trim().toLowerCase();
         if (rowClass === targetClass || histArr[i][colClass] === className) {
-             // Chuẩn hoá ngày hiển thị (cắt bỏ phần T nếu có)
              let dt = normDateStr(histArr[i][colDate]);
-             // Dedup theo ngày — bỏ qua dòng trùng
-             const histKey = dt + '|' + rowClass;
-             if (histSeen.has(histKey)) continue;
-             histSeen.add(histKey);
-
-             foundAny = true;
-             const tr = document.createElement("tr");
-             tr.style.borderBottom = "1px solid var(--border)";
-             
-             let pres = histArr[i][colPres] || "";
-             let abs = histArr[i][colAbs] || "";
-
+             let pres = String(histArr[i][colPres] || "");
+             let abs = String(histArr[i][colAbs] || "");
              if (abs === "Đi học đủ" || abs === "Không có") abs = "Không có ai";
              
-             const presentColor = pres === "Không có ai" ? "#64748b" : "#059669";
-             const absentColor = abs === "Không có ai" ? "#059669" : "#dc2626";
-             const absentWeight = abs === "Không có ai" ? "600" : "700";
-
-             tr.innerHTML = `
-                <td style="padding: 12px 10px; font-weight: 700;">${dt}</td>
-                <td style="padding: 12px 10px; color: ${presentColor}; font-weight: 600;">${pres}</td>
-                <td style="padding: 12px 10px; color: ${absentColor}; font-weight: ${absentWeight}; margin-left:1px;">${abs}</td>
-             `;
-             tbody.appendChild(tr);
+             if (!mergedHistory[dt]) {
+                 mergedHistory[dt] = { pres: new Set(), abs: new Set() };
+                 dateOrder.unshift(dt); // Mới nhất lên đầu
+             }
+             
+             if (pres !== "Không có ai" && pres !== "") {
+                 pres.split(",").forEach(x => mergedHistory[dt].pres.add(x.trim()));
+             }
+             if (abs !== "Không có ai" && abs !== "") {
+                 abs.split(",").forEach(x => mergedHistory[dt].abs.add(x.trim()));
+             }
         }
     }
+
+    let foundAny = dateOrder.length > 0;
+    
+    dateOrder.forEach(dt => {
+        const tr = document.createElement("tr");
+        tr.style.borderBottom = "1px solid var(--border)";
+        
+        let obj = mergedHistory[dt];
+        obj.pres.forEach(p => {
+            let rawName = p.replace(" (Học Gộp)", "").replace(" (Bổ sung)", "").trim();
+            let absArray = Array.from(obj.abs);
+            let matchingAbs = absArray.find(a => a.includes(rawName));
+            if (matchingAbs) obj.abs.delete(matchingAbs);
+        });
+        
+        let presStr = obj.pres.size > 0 ? Array.from(obj.pres).join(", ") : "Không có ai";
+        let absStr = obj.abs.size > 0 ? Array.from(obj.abs).join(", ") : "Không có ai";
+
+        const presentColor = presStr === "Không có ai" ? "#64748b" : "#059669";
+        const absentColor = absStr === "Không có ai" ? "#059669" : "#dc2626";
+        const absentWeight = absStr === "Không có ai" ? "600" : "700";
+
+        tr.innerHTML = `
+            <td style="padding: 12px 10px; font-weight: 700;">${dt}</td>
+            <td style="padding: 12px 10px; color: ${presentColor}; font-weight: 600;">${presStr}</td>
+            <td style="padding: 12px 10px; color: ${absentColor}; font-weight: ${absentWeight}; margin-left:1px;">${absStr}</td>
+        `;
+        tbody.appendChild(tr);
+    });
+
     if(!foundAny) tbody.innerHTML = `<tr><td colspan="3" style="text-align:center; padding: 25px; color: #64748b; font-style:italic;">Chưa có lịch sử khớp.</td></tr>`;
 }
 
@@ -567,15 +589,20 @@ window.deductIndividual = async function(studentName, className) {
              let presStr = String(histArr[j][hPres]);
              let absStr = String(histArr[j][hAbs]);
              
-             if (absStr.includes(studentName)) {
-                 let abList = absStr.split(",").map(x => x.trim()).filter(x => x !== studentName);
+             let abList = absStr === "Không có ai" ? [] : absStr.split(",").map(x => x.trim());
+             let prList = presStr === "Không có ai" ? [] : presStr.split(",").map(x => x.trim());
+             
+             if (abList.includes(studentName)) {
+                 abList = abList.filter(x => x !== studentName);
                  histArr[j][hAbs] = abList.length > 0 ? abList.join(", ") : "Không có ai";
-                 
-                 let prList = presStr === "Không có ai" ? [] : presStr.split(",").map(x => x.trim());
-                 if (!prList.includes(studentName)) prList.push(studentName);
-                 histArr[j][hPres] = prList.join(", ");
-                 hasLateArrivalFix = true;
              }
+             
+             let isAlreadyPresent = prList.some(name => name.includes(studentName));
+             if (!isAlreadyPresent) {
+                 prList.push(studentName + " (Bổ sung)");
+                 histArr[j][hPres] = prList.join(", ");
+             }
+             hasLateArrivalFix = true;
              break;
          }
     }

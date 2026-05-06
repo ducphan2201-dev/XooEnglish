@@ -16,6 +16,12 @@ function escapeAttr(str) {
 }
 
 // === UTILITY: Guard check Firebase DB ===
+function extractNumberSafe(val) {
+    if (val === "" || val === undefined || val === null) return NaN;
+    const match = String(val).match(/-?\d+/);
+    return match ? parseInt(match[0], 10) : NaN;
+}
+
 function getDbRef(path) {
     if (typeof db === 'undefined' || typeof firebase === 'undefined') {
         throw new Error('Firebase chưa sẵn sàng. Hãy tải lại trang.');
@@ -178,8 +184,9 @@ function renderClasses(data, isDemo = false) {
             let isExpired = false;
             let remainDisplay = remain;
             
-            if(!isNaN(remain) && String(remain).trim() !== "") {
-                remainDisplay = parseInt(remain);
+            let parsedRem = extractNumberSafe(remain);
+            if(!isNaN(parsedRem) && String(remain).trim() !== "") {
+                remainDisplay = parsedRem;
                 isExpired = remainDisplay <= 0;
             }
             
@@ -286,7 +293,7 @@ async function startSession(className, isDemo) {
                 let oldR = mainArr[i][colRemaining];
                 if (oldR === "" || oldR === undefined) oldR = mainArr[i][colCardType];
                 if (String(oldR).trim().toLowerCase() !== 'theo khóa') {
-                    let r = parseInt(oldR);
+                    let r = extractNumberSafe(oldR);
                     if (!isNaN(r)) {
                         mainArr[i][colRemaining] = r - 1; // Cho phép trừ âm
                     }
@@ -604,6 +611,12 @@ window.deductIndividual = async function(studentName, className) {
              }
              
              let isAlreadyPresent = prList.some(name => name.includes(studentName));
+             if (isAlreadyPresent) {
+                 alert(`Học viên ${studentName} đã được điểm danh CÓ MẶT trong lớp này ngày hôm nay!`);
+                 _deductBusy = false;
+                 hideLoader();
+                 return;
+             }
              if (!isAlreadyPresent) {
                  prList.push(studentName + " (Bổ sung)");
                  histArr[j][hPres] = prList.join(", ");
@@ -630,7 +643,7 @@ window.deductIndividual = async function(studentName, className) {
              if (String(oldR).trim().toLowerCase() === 'theo khóa') {
                  deducted = true;
              } else {
-                 let rem = parseInt(oldR);
+                 let rem = extractNumberSafe(oldR);
                  if (!isNaN(rem)) {
                      mainArr[i][colRemaining] = rem - 1; // Cho phép trừ âm
                      deducted = true;

@@ -59,6 +59,9 @@
   - Sửa lỗi ấn "Gia hạn thẻ" bị thất bại ngầm đối với một số học sinh (không cập nhật thẻ thứ 2): Nguyên nhân do Google Sheets có khoảng trắng thừa ở cuối tên học sinh. Đã bổ sung `.trim()` toàn diện trong tất cả các lệnh đối chiếu tên.
   - Ngăn ngừa lỗi Apps Script sập khi Firebase sinh ra "mảng răng cưa" (jagged array) do hàm Gia hạn chỉ đẩy cột bổ sung cho dòng đầu tiên tìm thấy. Nay tất cả các hàng sẽ được đồng bộ cấu trúc cột.
   - Sửa lỗi nghiêm trọng: Điểm danh hoặc Trừ lẻ thành công (có lưu lịch sử) nhưng Số Buổi Còn Lại không bị trừ. Nguyên nhân: Giáo viên có thể đã gõ thêm chữ vào ô số buổi (ví dụ: "10 buổi" hoặc "-2 buổi"), làm hàm `isNaN` đánh giá sai và bỏ qua việc trừ toán học. Đã sửa sang dùng `parseInt` trực tiếp để có thể bóc tách số từ chuỗi một cách an toàn.
+  - Sửa lỗi lệch đồng bộ giữa **Số buổi còn lại** và **Lịch sử điểm danh**: 
+    - Đã tạo hàm `extractNumberSafe` để bóc tách số liệu an toàn hơn so với `parseInt` thông thường, đảm bảo việc trừ toán học diễn ra trơn tru kể cả khi dữ liệu chứa chuỗi văn bản phức tạp ("Còn 5 buổi", "Nợ 2").
+    - Ngăn chặn triệt để tình trạng "trừ thẻ ẩn": Khi bấm "Trừ lẻ", nếu hệ thống phát hiện học viên đã có tên trong danh sách điểm danh hôm nay, hệ thống sẽ hiện cảnh báo và dừng lệnh. Điều này ngăn việc Số buổi còn lại bị trừ lần 2 nhưng Lịch sử điểm danh không ghi nhận thêm.
 
 ## Công việc hiện tại
-- Đã hoàn tất sửa các lỗi điểm danh, hiển thị lịch sử, nạp thẻ ẩn và trừ số buổi có chứa chữ. Đang chờ phản hồi hoặc yêu cầu tiếp theo từ khách hàng.
+- Đã hoàn tất sửa lỗi đồng bộ giữa số buổi còn lại và lịch sử điểm danh. Đang chờ xác nhận từ khách hàng.

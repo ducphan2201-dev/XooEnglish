@@ -30,6 +30,20 @@ function extractNumberSafe(val) {
     return NaN;
 }
 
+function makeRectangular(arr) {
+    if (!arr || arr.length === 0) return arr;
+    let maxLen = 0;
+    for (let i = 0; i < arr.length; i++) {
+        if (arr[i] && arr[i].length > maxLen) maxLen = arr[i].length;
+    }
+    for (let i = 0; i < arr.length; i++) {
+        if (arr[i]) {
+            while (arr[i].length < maxLen) arr[i].push("");
+        }
+    }
+    return arr;
+}
+
 function getDbRef(path) {
     if (typeof db === 'undefined' || typeof firebase === 'undefined') {
         throw new Error('Firebase chưa sẵn sàng. Hãy tải lại trang.');
@@ -320,8 +334,8 @@ async function startSession(className, isDemo) {
 
     try {
         await getDbRef().update({
-             '/Main': mainArr,
-             '/Lich_Su_Diem_Danh': histArr
+             '/Main': makeRectangular(mainArr),
+             '/Lich_Su_Diem_Danh': makeRectangular(histArr)
         });
         alert(`✅ Đã chốt thành công ngày ${displayDate}`);
     } catch(err) {
@@ -382,11 +396,7 @@ async function submitRenewForm(e) {
 
     let renewed = false;
     
-    // Đảm bảo tất cả các hàng đều có đủ cột (tránh lỗi mảng răng cưa khi sync GSheet)
-    for (let i = 1; i < mainArr.length; i++) {
-        if (!mainArr[i]) continue;
-        while(mainArr[i].length <= colSoThe) { mainArr[i].push(""); }
-    }
+    makeRectangular(mainArr);
 
     for (let i = 1; i < mainArr.length; i++) {
         if (!mainArr[i]) continue;
@@ -415,7 +425,7 @@ async function submitRenewForm(e) {
 
     if (renewed) {
          try {
-             await getDbRef('/Main').set(mainArr);
+             await getDbRef('/Main').set(makeRectangular(mainArr));
              alert("✅ Nạp thành công cho " + studentName);
              closeRenewModal();
          } catch(err) {
@@ -463,7 +473,7 @@ async function submitForm(e) {
     mainArr.push(newRow);
 
     try {
-        await getDbRef('/Main').set(mainArr);
+        await getDbRef('/Main').set(makeRectangular(mainArr));
         alert("✅ Khai báo thành công!");
         closeModal();
         document.getElementById("addForm").reset();
@@ -700,7 +710,8 @@ window.deductIndividual = async function(studentName, className) {
          histArr.push([selectedDate, className, studentName + " (Học Gộp)", "Không có ai"]);
     }
 
-        await getDbRef().update({'/Main': mainArr, '/Lich_Su_Diem_Danh': histArr});
+    try {
+        await getDbRef().update({'/Main': makeRectangular(mainArr), '/Lich_Su_Diem_Danh': makeRectangular(histArr)});
         alert(hasLateArrivalFix ? `Đã xoá án vắng và trừ thẻ cho ${studentName}.` : `Đã trừ thẻ bù ngày cho ${studentName}.`);
     } catch(err) {
         alert("Lỗi DB: " + err.message);

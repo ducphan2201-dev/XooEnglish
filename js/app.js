@@ -367,12 +367,17 @@ async function submitRenewForm(e) {
     }
 
     let renewed = false;
+    
+    // Đảm bảo tất cả các hàng đều có đủ cột (tránh lỗi mảng răng cưa khi sync GSheet)
+    for (let i = 1; i < mainArr.length; i++) {
+        if (!mainArr[i]) continue;
+        while(mainArr[i].length <= colSoThe) { mainArr[i].push(""); }
+    }
+
     for (let i = 1; i < mainArr.length; i++) {
         if (!mainArr[i]) continue;
         
-        while(mainArr[i].length <= colSoThe) { mainArr[i].push(""); }
-        
-        if (mainArr[i][colClass] === className && mainArr[i][colName] === studentName) {
+        if (String(mainArr[i][colClass]).trim() === String(className).trim() && String(mainArr[i][colName]).trim() === String(studentName).trim()) {
             let oldR = mainArr[i][colRemaining];
             if (oldR === "" || oldR === undefined) oldR = mainArr[i][colCardType];
             
@@ -402,6 +407,8 @@ async function submitRenewForm(e) {
          } catch(err) {
              alert("Lỗi: " + err.message);
          }
+    } else {
+         alert("Lỗi: Không tìm thấy học viên (có thể do lỗi khoảng trắng trong dữ liệu gốc). Vui lòng thử lại.");
     }
     btn.innerText = "💳 Nạp Thẻ & Gia Hạn";
     btn.disabled = false;

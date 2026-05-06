@@ -56,6 +56,8 @@
   - Khi người dùng thực hiện Gia hạn thẻ (`submitRenewForm`), số buổi mới sẽ tự động cấn trừ với số nợ âm cũ (ví dụ: -2 + 10 = 8 buổi) đúng theo yêu cầu của giáo viên.
   - Sửa lỗi UI "chỉ ghi nhận 1 bạn" trong Lịch sử điểm danh: Thay vì bị ẩn đi do hàm deduplicate bỏ qua các bản ghi trùng ngày, hệ thống nay đã gộp chung (merge) tất cả các bản ghi có cùng ngày lại.
   - Khắc phục lỗi `deductIndividual` tạo ra dòng mới trùng ngày trong `Lich_Su_Diem_Danh`. Nay khi "Trừ lẻ", hệ thống sẽ nối trực tiếp tên học viên (kèm chữ "Bổ sung") vào danh sách "Có mặt" của dòng lịch sử đã có sẵn trong ngày đó thay vì đẩy thêm dòng mới.
+  - Sửa lỗi ấn "Gia hạn thẻ" bị thất bại ngầm đối với một số học sinh (không cập nhật thẻ thứ 2): Nguyên nhân do Google Sheets có khoảng trắng thừa ở cuối tên học sinh. Đã bổ sung `.trim()` toàn diện trong tất cả các lệnh đối chiếu tên.
+  - Ngăn ngừa lỗi Apps Script sập khi Firebase sinh ra "mảng răng cưa" (jagged array) do hàm Gia hạn chỉ đẩy cột bổ sung cho dòng đầu tiên tìm thấy. Nay tất cả các hàng sẽ được đồng bộ cấu trúc cột.
 
 ## Công việc hiện tại
-- Đã hoàn tất sửa lỗi Lịch sử điểm danh hiển thị thiếu học viên và gộp dữ liệu lịch sử thông minh. Đang chờ phản hồi hoặc yêu cầu tiếp theo từ khách hàng.
+- Đã hoàn tất sửa các lỗi điểm danh, hiển thị lịch sử và nạp thẻ ẩn. Đang chờ phản hồi hoặc yêu cầu tiếp theo từ khách hàng.

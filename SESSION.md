@@ -60,8 +60,35 @@
   - Ngăn ngừa lỗi Apps Script sập khi Firebase sinh ra "mảng răng cưa" (jagged array) do hàm Gia hạn chỉ đẩy cột bổ sung cho dòng đầu tiên tìm thấy. Nay tất cả các hàng sẽ được đồng bộ cấu trúc cột.
   - Sửa lỗi nghiêm trọng: Điểm danh hoặc Trừ lẻ thành công (có lưu lịch sử) nhưng Số Buổi Còn Lại không bị trừ. Nguyên nhân: Giáo viên có thể đã gõ thêm chữ vào ô số buổi (ví dụ: "10 buổi" hoặc "-2 buổi"), làm hàm `isNaN` đánh giá sai và bỏ qua việc trừ toán học. Đã sửa sang dùng `parseInt` trực tiếp để có thể bóc tách số từ chuỗi một cách an toàn.
   - Sửa lỗi lệch đồng bộ giữa **Số buổi còn lại** và **Lịch sử điểm danh**: 
-    - Đã tạo hàm `extractNumberSafe` để bóc tách số liệu an toàn hơn so với `parseInt` thông thường, đảm bảo việc trừ toán học diễn ra trơn tru kể cả khi dữ liệu chứa chuỗi văn bản phức tạp ("Còn 5 buổi", "Nợ 2").
-    - Ngăn chặn triệt để tình trạng "trừ thẻ ẩn": Khi bấm "Trừ lẻ", nếu hệ thống phát hiện học viên đã có tên trong danh sách điểm danh hôm nay, hệ thống sẽ hiện cảnh báo và dừng lệnh. Điều này ngăn việc Số buổi còn lại bị trừ lần 2 nhưng Lịch sử điểm danh không ghi nhận thêm.
+    - Đã nâng cấp hàm `extractNumberSafe` để nhận diện các từ khóa "nợ", "âm" (ví dụ: "Nợ 2 buổi") và tự động ép thành số âm (-2) để tính toán chuẩn xác, thay vì hiểu sai thành số dương (2) làm hỏng kết quả trừ toán học.
+    - Sửa logic kiểm tra trùng lặp trong lệnh "Trừ lẻ": Cấu hình hệ thống quét **toàn bộ** các dòng lịch sử của ngày đó thay vì chỉ check dòng đầu tiên, ngăn việc trừ thẻ đúp do cơ sở dữ liệu có chứa nhiều dòng lịch sử trùng ngày.
+    - Chuẩn hóa hàm trừ `So_Ngay_Vang`: Chỉ trừ số ngày vắng khi học viên thực sự bị xóa khỏi danh sách vắng, tránh việc trừ sai cho các học viên được điểm danh bổ sung muộn.
+  - Sửa lỗi nghiêm trọng ngầm khi **Gia hạn thẻ** hoặc đẩy Firebase (chỉ cập nhật một bạn, bạn thứ 2 bị lỗi trên Google Sheets):
+    - Đã tạo hàm tiện ích `makeRectangular()` để bọc toàn bộ dữ liệu trước khi đẩy lên Firebase (`startSession`, `submitRenewForm`, `submitForm`, `deductIndividual`).
+    - Việc chuẩn hóa này đảm bảo mảng 2 chiều không bị "răng cưa" (jagged array) do thừa/thiếu phần tử cột ở cuối mỗi dòng. Khắc phục dứt điểm tình trạng sập (crash) khi Google Apps Script `setValues()` đọc dữ liệu từ Firebase về Google Sheets.
 
 ## Công việc hiện tại
-- Đã hoàn tất sửa lỗi đồng bộ giữa số buổi còn lại và lịch sử điểm danh. Đang chờ xác nhận từ khách hàng.
+- Đã khắc phục và báo cáo chi tiết về lỗi mảng răng cưa khi đồng bộ. Đang đợi người dùng xác nhận và trải nghiệm.
+
+## Resume 06/05/2026
+- Status: Resumed XooEnglish and fixed a syntax error in `js/app.js` where the outer `try` block inside `deductIndividual` was missing `catch/finally`.
+- Validation: `node --check .\js\app.js` passed.
+- Decisions: Kept the change minimal; added an outer fallback error handler and cleanup so `_deductBusy` and loader state are reset if an earlier step fails.
+- Files touched: `js/app.js`, `SESSION.md`.
+- Next step: User should test the "Tru le / Hoc gop" flow in the browser with real Firebase data.
+
+## Attendance audit 06/05/2026
+- Status: Audited the attendance/card deduction flows and fixed mismatch risks between `Lich_Su_Diem_Danh` and `The_Con_Lai`.
+- Root cause: Some matching paths still compared class/student names exactly, so trailing spaces in Google Sheets could let history update while the matching `Main` row was skipped. `submitRenewForm` also still used the older `isNaN/parseInt` logic, so debt text could be renewed as `0 + card` instead of `debt + card`.
+- Decisions: Added shared `normKey()` matching, reused `extractNumberSafe()` for renewals, and made `extractNumberSafe()` tolerate common mojibake debt keywords from previously corrupted data.
+- Validation: `node --check .\js\app.js` passed; Node VM simulations passed for `startSession`, `deductIndividual`, and `submitRenewForm`.
+- Files touched: `js/app.js`, `SESSION.md`.
+- Next step: Test with production Firebase data: close one class attendance, use "Tru Le" for a late student, renew a student currently showing debt, then compare `Main.The_Con_Lai` with `Lich_Su_Diem_Danh`.
+
+## Full app careful fix 06/05/2026
+- Status: Extended the audit without broad refactors. Fixed remaining mismatch/XSS risks in attendance history, finance calculation, checkbox matching, renew matching, and finance class-price rendering.
+- Root cause: A few completed flows still had older exact-match or raw `parseInt` paths after the main attendance fix. These could make history, remaining sessions, and finance totals disagree when data had whitespace, debt text, mojibake debt text, or special characters in class names.
+- Decisions: Kept fixes local to `js/app.js`; reused `normKey()`, `extractNumberSafe()`, `escapeHtml()`, and `escapeAttr()` instead of adding new architecture.
+- Validation: `node --check .\js\app.js` passed; helper tests passed; full Node VM simulations passed for `startSession`, `deductIndividual`, `submitRenewForm`, `openHistoryModal`, and `calculateFinanceDashboard`.
+- Files touched: `js/app.js`, `SESSION.md`.
+- Next step: Run one browser test on real data before deploying: attendance close, late-student deduct, card renewal from debt, history modal, and finance dashboard totals.

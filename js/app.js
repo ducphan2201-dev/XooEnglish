@@ -22,12 +22,19 @@ function extractNumberSafe(val) {
     const match = s.match(/-?\d+/);
     if (match) {
         let num = parseInt(match[0], 10);
+        if ((s.includes('n\u00e1\u00bb\u00a3') || s.includes('\u00c3\u00a2m') || s.includes('\u00e3\u00a2m')) && num > 0) {
+            num = -num;
+        }
         if ((s.includes('nợ') || s.includes('âm')) && num > 0) {
             num = -num;
         }
         return num;
     }
     return NaN;
+}
+
+function normKey(val) {
+    return String(val == null ? "" : val).trim().toLowerCase();
 }
 
 function makeRectangular(arr) {
@@ -268,22 +275,25 @@ async function startSession(className, isDemo) {
     const selectedDate = dateInput ? dateInput.value : new Date().toISOString().split('T')[0];
     const parts = selectedDate.split('-');
     const displayDate = parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : selectedDate;
+    const normClass = normKey(className);
 
-    const checkboxes = document.querySelectorAll(`input.absent-cb[data-class="${className}"]:checked`);
-    const absentStudents = Array.from(checkboxes).map(cb => cb.value);
+    const checkboxes = document.querySelectorAll("input.absent-cb:checked");
+    const absentStudents = Array.from(checkboxes)
+        .filter(cb => normKey(cb.dataset.class) === normClass)
+        .map(cb => cb.value);
+    const absentStudentKeys = absentStudents.map(normKey);
 
     const confirmMsg = absentStudents.length > 0 
         ? `Xác nhận ĐIỂM DANH Lớp [${className}] ngày ${displayDate}?\n\nDanh sách BẢO LƯU THẺ (${absentStudents.length} bạn giữ nguyên):\n👉 ${absentStudents.join(', ')}\n\n(Tất cả bạn CÓ MẶT còn lại TỰ ĐỘNG BỊ TRỪ 1 BUỔI!`
         : `Xác nhận ĐIỂM DANH Lớp [${className}] ngày ${displayDate}?\n\nTẤT CẢ HỌC VIÊN ĐỀU CÓ MẶT! 🥳\n(Hệ thống tự động trừ 1 buổi vào thẻ của Toàn lớp)`;
 
     let histArr = window.fbData?.Lich_Su_Diem_Danh || [];
-    let normClass = String(className || "").trim().toLowerCase();
     let normSelectedDate = normDateStr(selectedDate);
     for (let i = 1; i < histArr.length; i++) {
         if (!histArr[i]) continue;
         let rowDate = normDateStr(histArr[i][0]);
-        let rowClass = String(histArr[i][1] || "").trim().toLowerCase();
-        if (rowDate === normSelectedDate && (rowClass === normClass || histArr[i][1] === className)) {
+        let rowClass = normKey(histArr[i][1]);
+        if (rowDate === normSelectedDate && rowClass === normClass) {
              alert(`Lớp ${className} đã được chốt trong ngày ${displayDate}. Nếu có học viên đến muộn, hãy nhấn nút "➖ Trừ Lẻ".`);
              return;
         }
@@ -305,9 +315,9 @@ async function startSession(className, isDemo) {
 
     for (let i = 1; i < mainArr.length; i++) {
         if (!mainArr[i]) continue;
-        if (mainArr[i][colClass] === className) {
+        if (normKey(mainArr[i][colClass]) === normKey(className)) {
             let sName = mainArr[i][colName];
-            if (absentStudents.includes(sName)) {
+            if (absentStudentKeys.includes(normKey(sName))) {
                 absentListFinal.push(sName);
                 mainArr[i][colAbsences] = (parseInt(mainArr[i][colAbsences]) || 0) + 1;
             } else {
@@ -401,7 +411,7 @@ async function submitRenewForm(e) {
     for (let i = 1; i < mainArr.length; i++) {
         if (!mainArr[i]) continue;
         
-        if (String(mainArr[i][colClass]).trim() === String(className).trim() && String(mainArr[i][colName]).trim() === String(studentName).trim()) {
+        if (normKey(mainArr[i][colClass]) === normKey(className) && normKey(mainArr[i][colName]) === normKey(studentName)) {
             let oldR = mainArr[i][colRemaining];
             if (oldR === "" || oldR === undefined) oldR = mainArr[i][colCardType];
             
@@ -413,7 +423,8 @@ async function submitRenewForm(e) {
                 mainArr[i][colRemaining] = "Theo khóa";
                 mainArr[i][colCardType] = "Theo khóa";
             } else {
-                let currentLeft = (!isNaN(oldR) && String(oldR).trim() !== "") ? parseInt(oldR) : 0;
+                let currentLeft = extractNumberSafe(oldR);
+                if (isNaN(currentLeft)) currentLeft = 0;
                 let toAdd = parseInt(cardVal) || 0;
                 mainArr[i][colRemaining] = currentLeft + toAdd;
                 mainArr[i][colCardType] = cardVal;
@@ -524,7 +535,7 @@ function openHistoryModal(className) {
     let colAbs = headers.indexOf("Hoc_Vien_Vang");
     if (colAbs === -1) colAbs = 3;
 
-    let targetClass = String(className || "").trim().toLowerCase();
+    let targetClass = normKey(className);
     
     // Gộp dữ liệu nếu có nhiều dòng trùng ngày (ví dụ do lỗi bấm Trừ Lẻ tạo thêm dòng)
     const mergedHistory = {};
@@ -532,8 +543,8 @@ function openHistoryModal(className) {
 
     for (let i = 1; i < histArr.length; i++) {
         if (!histArr[i]) continue;
-        let rowClass = String(histArr[i][colClass] || "").trim().toLowerCase();
-        if (rowClass === targetClass || histArr[i][colClass] === className) {
+        let rowClass = normKey(histArr[i][colClass]);
+        if (rowClass === targetClass) {
              let dt = normDateStr(histArr[i][colDate]);
              let pres = String(histArr[i][colPres] || "");
              let abs = String(histArr[i][colAbs] || "");
@@ -563,7 +574,7 @@ function openHistoryModal(className) {
         obj.pres.forEach(p => {
             let rawName = p.replace(" (Học Gộp)", "").replace(" (Bổ sung)", "").trim();
             let absArray = Array.from(obj.abs);
-            let matchingAbs = absArray.find(a => a.includes(rawName));
+            let matchingAbs = absArray.find(a => normKey(a) === normKey(rawName));
             if (matchingAbs) obj.abs.delete(matchingAbs);
         });
         
@@ -611,7 +622,8 @@ window.deductIndividual = async function(studentName, className) {
     let hAbs = histHeaders.indexOf("Hoc_Vien_Vang");
     if (hAbs === -1) hAbs = 3;
 
-    let targetClassNorm = String(className || "").trim().toLowerCase();
+    let targetClassNorm = normKey(className);
+    let targetStudentNorm = normKey(studentName);
     let foundRowIndex = -1;
     let studentAlreadyPresent = false;
     let studentWasAbsentInRow = -1;
@@ -620,8 +632,8 @@ window.deductIndividual = async function(studentName, className) {
     for (let j = 1; j < histArr.length; j++) {
          if (!histArr[j]) continue;
          let rowD = normDateStr(histArr[j][hDate]);
-         let rowC = String(histArr[j][hClass] || "").trim().toLowerCase();
-         if (rowD === normSelectedDate && (rowC === targetClassNorm || histArr[j][hClass] === className)) {
+         let rowC = normKey(histArr[j][hClass]);
+         if (rowD === normSelectedDate && rowC === targetClassNorm) {
              if (foundRowIndex === -1) foundRowIndex = j;
              
              let presStr = String(histArr[j][hPres]);
@@ -629,13 +641,13 @@ window.deductIndividual = async function(studentName, className) {
              
              let isPresent = prList.some(name => {
                  let cleanName = name.replace(" (Bổ sung)", "").replace(" (Học Gộp)", "").trim();
-                 return cleanName === studentName;
+                 return normKey(cleanName) === targetStudentNorm;
              });
              if (isPresent) studentAlreadyPresent = true;
              
              let absStr = String(histArr[j][hAbs]);
              let abList = absStr === "Không có ai" ? [] : absStr.split(",").map(x => x.trim());
-             if (abList.includes(studentName)) studentWasAbsentInRow = j;
+             if (abList.some(name => normKey(name) === targetStudentNorm)) studentWasAbsentInRow = j;
          }
     }
 
@@ -650,7 +662,7 @@ window.deductIndividual = async function(studentName, className) {
          let j = studentWasAbsentInRow;
          let absStr = String(histArr[j][hAbs]);
          let abList = absStr === "Không có ai" ? [] : absStr.split(",").map(x => x.trim());
-         abList = abList.filter(x => x !== studentName);
+         abList = abList.filter(x => normKey(x) !== targetStudentNorm);
          histArr[j][hAbs] = abList.length > 0 ? abList.join(", ") : "Không có ai";
          
          let presStr = String(histArr[j][hPres]);
@@ -682,7 +694,7 @@ window.deductIndividual = async function(studentName, className) {
     let deducted = false;
     for (let i = 1; i < mainArr.length; i++) {
         if (!mainArr[i]) continue;
-        if (mainArr[i][colClass] === className && mainArr[i][colName] === studentName) {
+        if (normKey(mainArr[i][colClass]) === targetClassNorm && normKey(mainArr[i][colName]) === targetStudentNorm) {
              let oldR = mainArr[i][colRemaining];
              if (oldR === "" || oldR === undefined) oldR = mainArr[i][colCardType];
              // Xử lý loại "Theo khóa" — không cần trừ buổi
@@ -715,6 +727,12 @@ window.deductIndividual = async function(studentName, className) {
         alert(hasLateArrivalFix ? `Đã xoá án vắng và trừ thẻ cho ${studentName}.` : `Đã trừ thẻ bù ngày cho ${studentName}.`);
     } catch(err) {
         alert("Lỗi DB: " + err.message);
+    } finally {
+        _deductBusy = false;
+        hideLoader();
+    }
+    } catch(err) {
+        alert("Loi xu ly: " + err.message);
     } finally {
         _deductBusy = false;
         hideLoader();
@@ -919,10 +937,11 @@ function calculateFinanceDashboard(monthParam, rawData) {
                 
                 let rem = mainData[i][colRemaining];
                 if(rem === "" || rem === undefined || rem === null) {
-                    rem = parseInt(mainData[i][colCardType]) || 0;
+                    rem = extractNumberSafe(mainData[i][colCardType]);
                 } else {
-                    rem = parseInt(rem) || 0;
+                    rem = extractNumberSafe(rem);
                 }
+                if (isNaN(rem)) rem = 0;
                 classRemainingSessions[c] += rem;
                 exactSessionsOwed += rem;
             }
@@ -1069,10 +1088,12 @@ function renderPriceConfigInputs() {
 
     let html = "";
     classes.forEach(c => {
+        const safeClassName = escapeHtml(c.class_name);
+        const safeClassAttr = escapeAttr(c.class_name);
         html += `
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-            <div style="font-weight:600; font-size:0.9rem;">${c.class_name}</div>
-            <input type="number" class="class-price-input" data-class="${c.class_name}" value="${c.price_per_student || 0}" style="width: 150px; padding:6px 10px; border:1px solid #cbd5e1; border-radius:6px;" placeholder="Giá/1 HS/buổi">
+            <div style="font-weight:600; font-size:0.9rem;">${safeClassName}</div>
+            <input type="number" class="class-price-input" data-class="${safeClassAttr}" value="${c.price_per_student || 0}" style="width: 150px; padding:6px 10px; border:1px solid #cbd5e1; border-radius:6px;" placeholder="Giá/1 HS/buổi">
         </div>`;
     });
     container.innerHTML = html;
@@ -1100,7 +1121,7 @@ async function submitFinanceConfig(e) {
         let price = parseFloat(classPricesToSave[cName]) || 0;
         let found = false;
         for(let i=1; i<cauHinhData.length; i++) {
-             if(cauHinhData[i] && String(cauHinhData[i][0]).trim() === cName) {
+             if(cauHinhData[i] && normKey(cauHinhData[i][0]) === normKey(cName)) {
                  cauHinhData[i][1] = price;
                  found = true; break;
              }

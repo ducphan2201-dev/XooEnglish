@@ -27,5 +27,10 @@
     - Hiển thị thông tin "(Đã mua: X thẻ)" ngay cạnh tên học viên ở giao diện lớp học để giáo viên dễ theo dõi.
     - Công thức "Tổng Buổi Bán" được cập nhật thành: `Loại thẻ × Số thẻ đã mua` để đảm bảo độ chính xác tuyệt đối.
 
+- **06/05/2026**:
+  - Khắc phục lỗi không điểm danh được (ghi nhận học gộp hoặc bỏ qua) đối với những học viên đã hết thẻ (The_Con_Lai <= 0).
+  - Bỏ điều kiện chặn `> 0` trong các hàm `startSession` (Bấm chốt điểm danh cả lớp) và `deductIndividual` (Trừ lẻ), cho phép số buổi của học viên bị trừ về số âm (ghi nhận nợ buổi).
+  - Khi người dùng thực hiện Gia hạn thẻ (`submitRenewForm`), số buổi mới sẽ tự động cấn trừ với số nợ âm cũ (ví dụ: -2 + 10 = 8 buổi) đúng theo yêu cầu của giáo viên.
+
 ## Công việc hiện tại
-- Đang chờ yêu cầu tiếp theo từ người dùng.
+- Đã hoàn tất sửa lỗi "Bấm chốt điểm danh không ghi nhận khi hết thẻ và cho phép số buổi nợ về âm". Đang chờ phản hồi hoặc yêu cầu tiếp theo từ khách hàng.

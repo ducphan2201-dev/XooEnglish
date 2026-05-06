@@ -289,7 +289,7 @@ async function startSession(className, isDemo) {
                 if (String(oldR).trim().toLowerCase() !== 'theo khóa') {
                     if (!isNaN(oldR) && String(oldR).trim() !== "") {
                         let r = parseInt(oldR);
-                        if (r > 0) mainArr[i][colRemaining] = r - 1;
+                        mainArr[i][colRemaining] = r - 1; // Cho phép trừ âm
                     }
                 }
             }
@@ -598,7 +598,8 @@ window.deductIndividual = async function(studentName, className) {
                  deducted = true;
              } else if (!isNaN(oldR) && String(oldR).trim() !== "") {
                  let rem = parseInt(oldR);
-                 if (rem > 0) { mainArr[i][colRemaining] = rem - 1; deducted = true; }
+                 mainArr[i][colRemaining] = rem - 1; // Cho phép trừ âm
+                 deducted = true;
              }
              if (hasLateArrivalFix) {
                  let ab = parseInt(mainArr[i][colAbsences]) || 0;
@@ -608,7 +609,7 @@ window.deductIndividual = async function(studentName, className) {
         }
     }
 
-    if (!deducted) { alert("Học viên đã hết thẻ, không thể trừ."); return; }
+    if (!deducted) { alert("Không tìm thấy thông tin thẻ để trừ."); return; }
 
     if (!hasLateArrivalFix) {
          if (histArr.length === 0) histArr.push(["Ngay_Diem_Danh", "Ten_Lop", "Hoc_Vien_Co_Mat", "Hoc_Vien_Vang"]);
